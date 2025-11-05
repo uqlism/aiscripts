@@ -7,7 +7,7 @@ type Token = number
 
 /** 文字列をトークン列にするためのトークナイザー */
 function createTokenizer() {
-    type TokenChain = { times: number, token: Token | undefined }
+    type TokenChain = { token: Token | undefined }
     type TokenInfo = {
         expr: string | [Token, Token]
         next: { [K: string]: TokenChain | undefined }
@@ -39,40 +39,32 @@ function createTokenizer() {
 
     let lastToken = start
     function ingestNextToken(next: Token) {
-        if (next === start) {
-            lastToken = next
-            return
-        }
-
         const nextStr = next.to_str()
         const lastTokenInfo = tokenInfos[lastToken]
         const chain: TokenChain | undefined = lastTokenInfo.next[nextStr]
 
         if (chain === undefined) {
             // 初回
-            lastTokenInfo.next[nextStr] = { times: 1, token: undefined }
+            lastTokenInfo.next[nextStr] = { token: undefined }
             lastToken = next
         }
         else if (injoinableTokens.incl(lastToken)) {
             // 結合不可トークンの次
-            chain.times += 1
             lastToken = next
         }
         else if (chain.token === undefined) {
             // 二回目
             const joinedToken = newToken([lastToken, next])
-            chain.times = 2
             chain.token = joinedToken
             lastToken = joinedToken
         } else {
             // 三回目以降
-            chain.times += 1
             lastToken = chain.token
         }
     }
 
     function ingest(string: string) {
-        ingestNextToken(start)
+        lastToken = start
         for (const char of string.to_arr()) {
             ingestNextToken(encodeChar(char))
         }
@@ -83,7 +75,7 @@ function createTokenizer() {
         const nextStr = next.to_str()
         const chain: TokenChain | undefined = tokenInfos[last].next[nextStr]
         if (chain === undefined) {
-            tokenInfos[last].next[nextStr] = { times: 1, token: undefined }
+            tokenInfos[last].next[nextStr] = { token: undefined }
             return [next, false]
         } else if (chain.token === undefined) {
             return [next, false]
