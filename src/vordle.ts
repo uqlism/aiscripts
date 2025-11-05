@@ -420,7 +420,7 @@ function play() {
         const _guesses = guesses.get()
         const emojiMap = ["⬛", "⬛", "⬛", "🟨", "🟩"]
         return [
-            `Vordle ${_guessIdx + 1}/${maxGuessCount} (${today}-${playTimes.get()})`,
+            `Vordle ${_guessIdx + 1}/${maxGuessCount} (${today}-${playTimes.get() + 1})`,
             _guesses.slice(0, _guessIdx + 1).map(x => x.map(l => emojiMap[l.color]).join()).join(Str.lf),
             "#vordle",
             THIS_URL,
