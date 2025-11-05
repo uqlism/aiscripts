@@ -4,10 +4,12 @@ import { serialArr } from "./serialArr"
 import { isArr, isStr } from "./types"
 
 type Token = number
+const NoToken = -1
+type NoToken = typeof NoToken
 
 /** 文字列をトークン列にするためのトークナイザー */
 function createTokenizer() {
-    type TokenChain = { token: Token | undefined }
+    type TokenChain = Token | NoToken
     type TokenInfo = {
         expr: string | [Token, Token]
         next: { [K: string]: TokenChain | undefined }
@@ -45,21 +47,21 @@ function createTokenizer() {
 
         if (chain === undefined) {
             // 初回
-            lastTokenInfo.next[nextStr] = { token: undefined }
+            lastTokenInfo.next[nextStr] = NoToken
             lastToken = next
         }
         else if (injoinableTokens.incl(lastToken)) {
             // 結合不可トークンの次
             lastToken = next
         }
-        else if (chain.token === undefined) {
+        else if (chain === NoToken) {
             // 二回目
             const joinedToken = newToken([lastToken, next])
-            chain.token = joinedToken
+            lastTokenInfo.next[nextStr] = joinedToken
             lastToken = joinedToken
         } else {
             // 三回目以降
-            lastToken = chain.token
+            lastToken = chain
         }
     }
 
@@ -75,12 +77,12 @@ function createTokenizer() {
         const nextStr = next.to_str()
         const chain: TokenChain | undefined = tokenInfos[last].next[nextStr]
         if (chain === undefined) {
-            tokenInfos[last].next[nextStr] = { token: undefined }
+            tokenInfos[last].next[nextStr] = NoToken
             return [next, false]
-        } else if (chain.token === undefined) {
+        } else if (chain === NoToken) {
             return [next, false]
         } else {
-            return [chain.token, true]
+            return [chain, true]
         }
     }
 
