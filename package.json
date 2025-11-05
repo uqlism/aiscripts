@@ -1,0 +1,20 @@
+{
+  "name": "aiscript-transpiler-test",
+  "version": "0.1.0",
+  "description": "TypeScript to AiScript transpiler",
+  "type": "module",
+  "scripts": {
+    "transpile": "bun --env-file .env aiscript-transpile",
+    "deploy:itako": "bun --env-file .env aiscript-transpile deploy src/itako.ts voskey.icalo.net adeanga0y9",
+    "deploy:zumo": "bun --env-file .env aiscript-transpile deploy src/zumo.ts voskey.icalo.net aeawu7h06j",
+    "deploy:zumo:dev": "bun --env-file .env aiscript-transpile deploy src/zumo.ts voskey.icalo.net aeb82rsj4i",
+    "deploy:vordle": "bun --env-file .env aiscript-transpile deploy src/vordle.ts voskey.icalo.net aej1suvo22",
+    "t": "bun --env-file .env aiscript-transpile transpile src/t.ts"
+  },
+  "dependencies": {
+    "aiscript-transpiler": "file:../aiscript-transpiler/"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.4"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "noLib": true,
+    "types": [
+      "aiscript-transpiler/types/aiscript",
+      "aiscript-transpiler/types/misskey"
+    ]
+  },
+  "include": [
+    "**/*"
+  ]
+}
