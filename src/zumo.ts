@@ -67,7 +67,7 @@ function createTokenizer() {
 
     function ingest(string: string) {
         lastToken = start
-        for (const char of string.to_arr()) {
+        for (const char of string.to_unicode_arr()) {
             ingestNextToken(encodeChar(char))
         }
         ingestNextToken(end)
