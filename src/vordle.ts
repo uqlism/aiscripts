@@ -318,17 +318,10 @@ const compare = (input: string[], answer: string[]): Guess => {
 
 const today = `${Date.year()}/${Date.month()}/${Date.day()}`
 const record = Mk.load(THIS_ID) as { [key: string]: number }
-const _playTimes: number = record === undefined ? 0 : record[today] === undefined ? 0 : record[today]
-const playTimes = kiwi.state(_playTimes)
-kiwi.effect(() => {
-    const savedata = {}
-    savedata[today] = playTimes.get()
-    Mk.save(THIS_ID, savedata);
-    return true
-})
+const playTimes: number = record === undefined ? 1 : record[today] === undefined ? 1 : record[today] + 1
 
 function play() {
-    const rnd = Math.gen_rng(`${today}/${playTimes.get()}`)
+    const rnd = Math.gen_rng(`${today}/${playTimes}`)
     const answer = answerWords[rnd(0, answerWords.len - 1)].pad_end(wordLen)
     const ansLetters = answer.to_arr()
 
@@ -360,7 +353,10 @@ function play() {
 
     function onFinished() {
         finished.set(true)
-        playTimes.set(playTimes.get() + 1)
+        const savedata = {}
+        savedata[today] = playTimes
+        Mk.save(THIS_ID, savedata);
+
     }
 
     function trySetGuessWord(word: string) {
@@ -420,7 +416,7 @@ function play() {
         const _guesses = guesses.get()
         const emojiMap = ["⬛", "⬛", "⬛", "🟨", "🟩"]
         return [
-            `Vordle ${_guessIdx + 1}/${maxGuessCount} (${today}-${playTimes.get() + 1})`,
+            `Vordle ${_guessIdx + 1}/${maxGuessCount} (${today}-${playTimes})`,
             _guesses.slice(0, _guessIdx + 1).map(x => x.map(l => emojiMap[l.color]).join()).join(Str.lf),
             "#vordle",
             THIS_URL,
@@ -440,7 +436,7 @@ function play() {
     }
 
     Ui.render(serialArr([
-        () => Ui.C.text({ text: `Vordle ${today}-${playTimes.get()}`, }),
+        () => Ui.C.text({ text: `Vordle ${today}-${playTimes}`, }),
         () => kiwi.mfm({ text: () => render(guesses.get(), win.get()) }),
         () => kiwi.container({
             hidden: finished.get,
