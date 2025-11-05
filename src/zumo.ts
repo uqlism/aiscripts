@@ -41,11 +41,16 @@ function createTokenizer() {
     function ingestNextToken(next: Token) {
         if (next === start) {
             lastToken = next
+            return
         }
-        const chain: TokenChain | undefined = tokenInfos[lastToken].next[next.to_str()]
+
+        const nextStr = next.to_str()
+        const lastTokenInfo = tokenInfos[lastToken]
+        const chain: TokenChain | undefined = lastTokenInfo.next[nextStr]
+
         if (chain === undefined) {
             // 初回
-            tokenInfos[lastToken].next[next.to_str()] = { times: 1, token: undefined }
+            lastTokenInfo.next[nextStr] = { times: 1, token: undefined }
             lastToken = next
         }
         else if (injoinableTokens.incl(lastToken)) {
@@ -75,10 +80,10 @@ function createTokenizer() {
     }
 
     function encodeToken(last: Token, next: Token): [Token, boolean] {
-        const t2 = next.to_str()
-        const chain: TokenChain | undefined = tokenInfos[last].next[t2]
+        const nextStr = next.to_str()
+        const chain: TokenChain | undefined = tokenInfos[last].next[nextStr]
         if (chain === undefined) {
-            tokenInfos[last].next[t2] = { times: 1, token: undefined }
+            tokenInfos[last].next[nextStr] = { times: 1, token: undefined }
             return [next, false]
         } else if (chain.token === undefined) {
             return [next, false]
@@ -97,8 +102,9 @@ function createTokenizer() {
             tokens.push(token)
         }
         process(start)
-        for (const char of string.to_arr()) {
-            process(encodeChar(char))
+        const chars = string.to_arr()
+        for (let i = 0; i < chars.len; i++) {
+            process(encodeChar(chars[i]))
         }
         process(end)
         return tokens
