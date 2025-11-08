@@ -342,6 +342,9 @@ const guessableWords = [
     "yosida", // 吉田君
     "namae", // 名前シレズ
     "sirezu", // 名前シレズ
+    "ioi", // 五百井アエ 五百井アウ
+    "ae", // 五百井アエ
+    "au", // 五百井アウ
 ]
 
 const compare = (input: string[], answer: string[]): Guess => {
@@ -515,7 +518,13 @@ function play() {
                         children: serialArr([
                             () => kiwi.mfm({ text: displayChars }),
                             () => kiwi.textInput({ default: inputBox.get, onInput: trySetGuessWord }),
-                            () => kiwi.text({ text: errMsg.get }),
+                            () => kiwi.mfm({
+                                text: () => {
+                                    const _errMsg = errMsg.get()
+                                    if (_errMsg === "") return ""
+                                    else return `<small>${_errMsg}</small>`
+                                }
+                            }),
                             () => kiwi.buttons({
                                 buttons: () => [
                                     { disabled: errMsg.get() !== "", text: "入力", onClick: guess },
