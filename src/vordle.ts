@@ -193,8 +193,8 @@ const guessableWords = [
     "awase",
     "ayane",
     "bii", // 猫使ビィ
-    "chisei", // 知声
-    "cotumu",
+    "tisei", // 知声
+    "kotumu",
     "dayone",
     "denri",
     "frimo",
@@ -336,7 +336,7 @@ const guessableWords = [
     "lily", // LILY
     "cul", // CUL
     "karune", // 骸音シーエ
-    "ca", // 骸音シーエ
+    "siie", // 骸音シーエ
     "luo", // 洛天依
     "tianyi", // 洛天依
     "yosida", // 吉田君
@@ -345,7 +345,20 @@ const guessableWords = [
     "ioi", // 五百井アエ 五百井アウ
     "ae", // 五百井アエ
     "au", // 五百井アウ
-]
+    "akita", // 亞北ネル
+    "neru", // 亞北ネル
+    "yowane", // 弱音ハク
+    "haku", // 弱音ハク
+    "sakune", // 咲音メイコ
+    "anon", // 杏音
+    "kanon", // 鳥音
+    "tonemu", // 兎眠りおん
+    "rion", // 兎眠りおん
+    "piko", // 歌手音ピコ
+    "siki", // 式狼縁 式大元
+    "rouen", // 式狼縁 
+    "taigen", // 式狼縁 式大元1
+] 
 
 const compare = (input: string[], answer: string[]): Guess => {
     const result = input.map((l) => ({ letter: l, color: Color.miss }))
