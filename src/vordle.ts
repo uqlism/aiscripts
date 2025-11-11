@@ -270,7 +270,7 @@ const guessableWords = [
     "typet", // ナースロボ_タイプT
     "kukuri", // 八蜂鞠ククリ
     "koron", // 涙目コロン
-    "sahra", // サーラちゃん様
+    "saara", // サーラちゃん様
     "ria", // RIA
     "wakaho", // 若穂みのり
     "minori", // 若穂みのり
@@ -361,7 +361,7 @@ const guessableWords = [
     "siki", // 式狼縁 式大元
     "rouen", // 式狼縁 
     "taigen", // 式狼縁 式大元1
-] 
+]
 
 const compare = (input: string[], answer: string[]): Guess => {
     const result = input.map((l) => ({ letter: l, color: Color.miss }))
@@ -400,7 +400,7 @@ function play() {
     const finished = kiwi.state(false)
     const errMsg = kiwi.state("")
     const guesses = kiwi.state<Guess[]>(array(maxGuessCount, () => array(wordLen, () => ({ color: Color.empty, letter: " " }))))
-    const inputBox = kiwi.state("")
+    const resetInputSignal = kiwi.state<undefined>(undefined)
 
     const big = kiwi.state(true)
 
@@ -464,7 +464,7 @@ function play() {
 
         const res = compare(guessWord.map(x => x.letter), ansLetters)
         _guesses[_guessIdx] = res
-        inputBox.set("")
+        resetInputSignal.set(undefined)
 
         guesses.set(_guesses)
 
@@ -533,7 +533,15 @@ function play() {
                         hidden: finished.get,
                         children: serialArr([
                             () => kiwi.mfm({ text: displayChars }),
-                            () => kiwi.textInput({ default: inputBox.get, onInput: trySetGuessWord }),
+                            () => kiwi.container({
+                                children() {
+                                    // resetInputSignalが再設定されたときに再描画する
+                                    resetInputSignal.get()
+                                    return serialArr([
+                                        () => kiwi.textInput({ default: "", onInput: trySetGuessWord }),
+                                    ])
+                                }
+                            }),
                             () => kiwi.mfm({
                                 text: () => {
                                     const _errMsg = errMsg.get()
