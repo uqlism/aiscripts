@@ -112,6 +112,7 @@ const answerWords = [
 
     ["motiko", "もち子さん"],
     ["hau", "雨晴はう"],
+    ["mesuo", "剣崎雌雄"],
 
     // Lusty*Kiss_Production
 
@@ -160,6 +161,8 @@ const answerWords = [
 
     ["adati", "足立レイ"],
     ["rei", "足立レイ"],
+    ["tukumo", "九十九シオン"],
+    ["sion", "九十九シオン"],
 
     ["minase", "水瀬コウ"],
     ["kou", "水瀬コウ"],
