@@ -9,7 +9,7 @@
     "deploy:zumo": "bun --env-file .env aiscript-transpile deploy src/zumo.ts voskey.icalo.net aeawu7h06j",
     "deploy:zumo:dev": "bun --env-file .env aiscript-transpile deploy src/zumo.ts voskey.icalo.net aeb82rsj4i",
     "deploy:vordle": "bun --env-file .env aiscript-transpile deploy src/vordle.ts voskey.icalo.net aej1suvo22",
-    "deploy:mine": "bun --env-file .env aiscript-transpile deploy src/mine.ts voskey.icalo.net aetpx3hw9l",
+    "deploy:dareda": "bun --env-file .env aiscript-transpile deploy src/games/dareda.ts voskey.icalo.net aetpx3hw9l",
     "t": "bun --env-file .env aiscript-transpile transpile src/t.ts"
   },
   "dependencies": {
