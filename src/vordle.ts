@@ -164,8 +164,9 @@ const answerWords = [
     ["tukumo", "九十九シオン"],
     ["sion", "九十九シオン"],
 
-    ["minase", "水瀬コウ"],
+    ["minase", "水瀬コウ 水瀬リト"],
     ["kou", "水瀬コウ"],
+    ["rito", "水瀬リト"],
 
     ["teto", "重音テト"],
     ["kasane", "重音テト"],
@@ -198,9 +199,9 @@ const guessableWords = [
     "bii", // 猫使ビィ
     "tisei", // 知声
     "kotumu",
-    "dayone",
+    "dayone", // ﾀﾞﾖﾈｰ
     "denri",
-    "frimo",
+    "frimo", // フリモメン
     "gira",
     "goki", // 後鬼
     "haru", // 羽累
@@ -232,7 +233,6 @@ const guessableWords = [
     "omito",
     "poron", // ポロンちゃん [VOICEPEAK]
     "rino",
-    "rito",
     "sakuya",
     "seven",
     "seyana",
@@ -317,12 +317,10 @@ const guessableWords = [
     "syouta", // 月読ショウタ
     "tamaki", // 玉姫
     "ruka", // 巡音ルカ
-    "luka", // 巡音ルカ
     "itune", // 乙音イツ 乙音いつか
     "itu", // 乙音イツ
     "ituka", // 乙音いつか
     "aoki", // 蒼姫ラピス
-    "lapis", // 蒼姫ラピス
     "rapisu", // 蒼姫ラピス
     "iroha", // 猫村いろは
     "kokone", // kokone
@@ -360,7 +358,7 @@ const guessableWords = [
     "piko", // 歌手音ピコ
     "siki", // 式狼縁 式大元
     "rouen", // 式狼縁 
-    "taigen", // 式狼縁 式大元1
+    "taigen", // 式狼縁 式大元
 ]
 
 const compare = (input: string[], answer: string[]): Guess => {
