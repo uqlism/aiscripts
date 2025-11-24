@@ -1,7 +1,7 @@
-import { kiwi } from "./kiwi"
-import { re } from "./regex"
-import { serialArr } from "./serialArr"
-import { isArr, isStr } from "./types"
+import { kiwi } from "../kiwi"
+import { re } from "../utils/regex"
+import { serialArr } from "../utils/serialArr"
+import { isArr, isStr } from "../utils/types"
 
 type Token = number
 const NoToken = -1

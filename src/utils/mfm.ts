@@ -1,4 +1,4 @@
-import { isArr, isStr } from "../types"
+import { isArr, isStr } from "./types"
 
 type M = {
     text: string

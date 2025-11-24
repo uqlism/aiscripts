@@ -1,5 +1,5 @@
-import { createWindow } from "./emu";
-import { kiwi } from "./kiwi";
+import { createWindow } from "../emu";
+import { kiwi } from "../kiwi";
 
 const window = createWindow(30, 4)
 

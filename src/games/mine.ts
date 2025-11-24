@@ -1,5 +1,5 @@
-import { kiwi } from "./kiwi"
-import { range } from "./utils/range"
+import { kiwi } from "../kiwi"
+import { range } from "../utils/range"
 
 
 const State = {

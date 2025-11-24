@@ -1,6 +1,6 @@
-import { kiwi } from "./kiwi"
-import { serialArr } from "./serialArr"
-import { array } from "./utils/array"
+import { kiwi } from "../kiwi"
+import { serialArr } from "../utils/serialArr"
+import { array } from "../utils/array"
 
 const Color = {
     empty: 0,
