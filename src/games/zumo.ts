@@ -1,6 +1,5 @@
 import { kiwi } from "../kiwi"
 import { re } from "../utils/regex"
-import { serialArr } from "../utils/serialArr"
 import { isArr, isStr } from "../utils/types"
 
 type Token = number
@@ -317,8 +316,8 @@ function generate() {
     resultIndex.set(results.len - 1)
 }
 
-Ui.render(serialArr([
-    () => kiwi.container({
+Ui.render([
+    kiwi.container({
         hidden: () => phase.get() !== "init",
         children: [Ui.C.buttons({
             buttons: [
@@ -327,22 +326,22 @@ Ui.render(serialArr([
             ]
         })]
     }),
-    () => kiwi.container({
+    kiwi.container({
         hidden: () => phase.get() !== "learning",
         children: [kiwi.mfm({ text: progress.get })]
     }),
-    () => kiwi.container({
+    kiwi.container({
         hidden: () => phase.get() !== "learned",
         children: [
             kiwi.mfm({ text: "$[flip.x :adachirei_yay:] 学習完了 !!" }),
             Ui.C.button({ text: "ｽﾞﾓる", onClick: () => { generate(); phase.set("generated") }, })
         ]
     }),
-    () => kiwi.container({
+    kiwi.container({
         hidden: () => phase.get() !== "generated",
-        children: serialArr([
-            () => kiwi.mfm({ text: () => results[resultIndex.get()] }),
-            () => kiwi.buttons({
+        children: [
+            kiwi.mfm({ text: () => results[resultIndex.get()] }),
+            kiwi.buttons({
                 buttons: () => {
                     const i = resultIndex.get()
                     return [
@@ -353,7 +352,7 @@ Ui.render(serialArr([
                     ]
                 }
             }),
-            () => kiwi.postFormButton({
+            kiwi.postFormButton({
                 text: "LTLに放出ｱｱｱｱｧｧｧｧ----wwww",
                 primary: true,
                 rounded: true,
@@ -361,6 +360,6 @@ Ui.render(serialArr([
                     text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ${Str.lf}${THIS_URL}`
                 }),
             })
-        ])
+        ]
     })
-]))
+])

@@ -1,5 +1,4 @@
 import { kiwi } from "../kiwi"
-import { serialArr } from "../utils/serialArr"
 import { array } from "../utils/array"
 
 const Color = {
@@ -513,61 +512,58 @@ function play() {
         "6回以内にあてることができればクリアです",
         "答えのキャラクターは必ず6文字以下です",
     ].join(Str.lf)
-    Ui.render(
-        serialArr([
-            () => kiwi.container({
-                hidden: () => !showHowToPlay.get(),
-                children: serialArr([
-                    () => kiwi.mfm({ text: howToPlay }),
-                    () => kiwi.button({ text: "ゲームに戻る", onClick: () => showHowToPlay.set(false) }),
-                ])
-            }),
-            () => kiwi.container({
-                hidden: () => showHowToPlay.get(),
-                children: serialArr([
-                    () => Ui.C.text({ text: `Vordle ${today}-${playTimes}`, }),
-                    () => kiwi.mfm({ text: () => render(guesses.get(), win.get()) }),
-                    () => kiwi.container({
-                        hidden: finished.get,
-                        children: serialArr([
-                            () => kiwi.mfm({ text: displayChars }),
-                            () => kiwi.container({
-                                children() {
-                                    // resetInputSignalが再設定されたときに再描画する
-                                    resetInputSignal.get()
-                                    return serialArr([
-                                        () => kiwi.textInput({ default: "", onInput: trySetGuessWord }),
-                                    ])
-                                }
-                            }),
-                            () => kiwi.mfm({
-                                text: () => {
-                                    const _errMsg = errMsg.get()
-                                    if (_errMsg === "") return ""
-                                    else return `<small>${_errMsg}</small>`
-                                }
-                            }),
-                            () => kiwi.buttons({
-                                buttons: () => [
-                                    { disabled: errMsg.get() !== "", text: "入力", onClick: guess },
-                                    { text: big.get() ? "縮小表示" : "拡大表示", onClick: () => big.set(!big.get()) },
-                                    { text: "遊び方", onClick: () => showHowToPlay.set(true) },
-                                ]
+    Ui.render([
+        kiwi.container({
+            hidden: () => !showHowToPlay.get(),
+            children: [
+                kiwi.mfm({ text: howToPlay }),
+                kiwi.button({ text: "ゲームに戻る", onClick: () => showHowToPlay.set(false) }),
+            ]
+        }),
+        kiwi.container({
+            hidden: () => showHowToPlay.get(),
+            children: [
+                Ui.C.text({ text: `Vordle ${today}-${playTimes}`, }),
+                kiwi.mfm({ text: () => render(guesses.get(), win.get()) }),
+                kiwi.container({
+                    hidden: finished.get,
+                    children: [
+                        kiwi.mfm({ text: displayChars }),
+                        kiwi.container({
+                            children() {
+                                // resetInputSignalが再設定されたときに再描画する
+                                resetInputSignal.get()
+                                return [kiwi.textInput({ default: "", onInput: trySetGuessWord }),]
                             }
-                            )
-                        ])
-                    }),
-                    () => kiwi.container({
-                        hidden: () => !finished.get(),
-                        align: "center",
-                        children: serialArr([
-                            () => kiwi.text({ text: `正解: ${answer} | ${answerCharacterName}` }),
-                            () => kiwi.postFormButton({ primary: true, rounded: true, text: "結果を投稿", form: () => ({ text: postText() }) })
-                        ])
-                    })
-                ])
-            })
-        ]))
+                        }),
+                        kiwi.mfm({
+                            text: () => {
+                                const _errMsg = errMsg.get()
+                                if (_errMsg === "") return ""
+                                else return `<small>${_errMsg}</small>`
+                            }
+                        }),
+                        kiwi.buttons({
+                            buttons: () => [
+                                { disabled: errMsg.get() !== "", text: "入力", onClick: guess },
+                                { text: big.get() ? "縮小表示" : "拡大表示", onClick: () => big.set(!big.get()) },
+                                { text: "遊び方", onClick: () => showHowToPlay.set(true) },
+                            ]
+                        }
+                        )
+                    ]
+                }),
+                kiwi.container({
+                    hidden: () => !finished.get(),
+                    align: "center",
+                    children: [
+                        kiwi.text({ text: `正解: ${answer} | ${answerCharacterName}` }),
+                        kiwi.postFormButton({ primary: true, rounded: true, text: "結果を投稿", form: () => ({ text: postText() }) })
+                    ]
+                })
+            ]
+        })
+    ])
 }
 
 play()
