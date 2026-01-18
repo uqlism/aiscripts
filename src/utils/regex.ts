@@ -62,6 +62,11 @@ const charNot = (chars: string, pairs: string): Parser => {
     }
 }
 
+const any: Parser = (input, pos) => {
+    if (input.len <= pos) return { ok: false, pos }
+    return { ok: true, value: [input[pos]], next: pos + 1 }
+}
+
 const charsSeq = (chars: string): Parser => {
     return seq(chars.to_unicode_codepoint_arr().map(charCodepoint))
 }
@@ -92,12 +97,12 @@ const or = (parsers: Parser[]): Parser => (input, pos) => {
 };
 
 const many = (p: Parser): Parser => (input, pos) => {
-    const value: number[] = [];
+    let value: number[] = [];
     let next = pos;
     while (true) {
         const r = p(input, next);
         if (!r.ok) break;
-        value.concat(r.value);
+        value = value.concat(r.value);
         next = r.next;
     }
     return { ok: true, value, next };
@@ -125,6 +130,7 @@ export const re = {
     charCodepoint,
     char,
     charNot,
+    any,
     charsSeq,
     seq,
     or,
