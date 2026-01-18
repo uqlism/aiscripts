@@ -233,7 +233,7 @@ function ingest(fromLtl: boolean) {
     // 最新learnSteps*learnCount件のLTLを学習
     const letterSplitter = createLetterSplitter()
 
-    const getUserNotes = (untilId: string | undefined): { id: string, text: string }[] => {
+    const getUserNotes = (untilId: string | undefined): { id: string, text: string, user: { isBot: boolean } }[] => {
         if (untilId === undefined) {
             return Mk.api("users/notes", { userId: USER_ID, includeReplies: false, limit: fetchBatchCount, includeMyRenotes: false })
         }
@@ -242,7 +242,7 @@ function ingest(fromLtl: boolean) {
         }
     }
 
-    const getLtlNotes = (untilId: string | undefined): { id: string, text: string }[] => {
+    const getLtlNotes = (untilId: string | undefined): { id: string, text: string, user: { isBot: boolean } }[] => {
         if (untilId === undefined) {
             return Mk.api("notes/local-timeline", { withFiles: false, withRenotes: false, withReplies: false, limit: fetchBatchCount, allowPartial: false })
         }
@@ -267,7 +267,10 @@ function ingest(fromLtl: boolean) {
     const getNextLines = (_untilId): [string, string[][]] => {
         const res = noteGetter(_untilId)
         const _nextUntilId = res[res.len - 1].id
-        const lines = res.flat_map(x => x.text === undefined ? [] : x.text.split(Str.lf).map(y => y.trim())).map(letterSplitter).filter(x => x.len > 0)
+        const lines = res
+            .filter(x => !x.user.isBot)
+            .filter(x => x.text !== undefined)
+            .flat_map(x => x.text.split(Str.lf).map(y => y.trim())).map(letterSplitter).filter(x => x.len > 0)
         return [_nextUntilId, lines]
     }
 
