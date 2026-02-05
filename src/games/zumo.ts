@@ -224,9 +224,11 @@ const markovModel = createMarkovModel()
 const results = [""]
 const resultIndex = kiwi.state(0)
 
+let ingestedFromLtl = true
+
 function ingest(fromLtl: boolean) {
     phase.set("learning")
-
+    ingestedFromLtl = fromLtl
     const fetchBatchCount = 50
     const fatchTimes = 6
 
@@ -382,7 +384,7 @@ Ui.render([
                 primary: true,
                 rounded: true,
                 form: () => ({
-                    text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ${Str.lf}${THIS_URL}`
+                    text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ <small>with ${ingestedFromLtl ? "LTL" : USER_NAME}</small>${Str.lf}${THIS_URL}`
                 }),
             })
         ]
