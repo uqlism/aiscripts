@@ -58,6 +58,9 @@ const answerWords = [
     ["flower", "v-flower c-flower"],
     ["sinfa", "心華"],
 
+    ["yuise", "唯世かのん"],
+    ["kanon", "唯世かのん"],
+
     // CEVIO
 
     ["sasara", "さとうささら"],
