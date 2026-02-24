@@ -225,6 +225,7 @@ const guessableWords = [
     "mega",
     "mei",
     "miroku",
+    "meguri", // 茶運めぐり
     "moa",
     "mon",
     "muon",
@@ -235,7 +236,9 @@ const guessableWords = [
     "noise", // FEE NOiSE
     "omito",
     "poron", // ポロンちゃん [VOICEPEAK]
-    "rino",
+    "igyou", // 偉業りの 偉業それな
+    "rino", // 偉業りの
+    "sorena", // 偉業それな
     "sakuya",
     "seven",
     "seyana",
@@ -257,9 +260,9 @@ const guessableWords = [
     "awamo", // 沖縄あわも
     "meron", // 北海道めろん
     "uduki", // 黒聡鵜月
-    "uta",
-    "yixi",
-    "yuna",
+    "uta", // 唄音ウタ
+    "yixi", // 奕夕
+    "yuna", // 船音ユナ
     "yojika",
     "yosi",
     "yutaro",
@@ -268,8 +271,8 @@ const guessableWords = [
     "yone",
     "rou",
     "nia",
-    "vyone",
-    "vytwo",
+    "vyone", //VY1
+    "vytwo", //VY2
     "typet", // ナースロボ_タイプT
     "kukuri", // 八蜂鞠ククリ
     "koron", // 涙目コロン
@@ -362,6 +365,11 @@ const guessableWords = [
     "siki", // 式狼縁 式大元
     "rouen", // 式狼縁 
     "taigen", // 式狼縁 式大元
+    "tomo", // トモ(知声ふぞく)
+    "furimo", // フリモメン
+
+    "watson", // ワトソン君 (宮舞モカ)
+    "inaba", // いなば (中国うさぎ)
 ]
 
 const compare = (input: string[], answer: string[]): Guess => {
