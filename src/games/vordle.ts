@@ -367,6 +367,7 @@ const guessableWords = [
     "taigen", // 式狼縁 式大元
     "tomo", // トモ(知声ふぞく)
     "furimo", // フリモメン
+    "fukase", // FUKASE
 
     "watson", // ワトソン君 (宮舞モカ)
     "inaba", // いなば (中国うさぎ)
