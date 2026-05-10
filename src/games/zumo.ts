@@ -107,7 +107,7 @@ function createTokenizer() {
             const e = tokenInfos[token].expr
             if (isStr(e)) {
                 return e as string
-            } else if (isArr(e)) {
+            } else {
                 return `${decodeToken(e[0])}${decodeToken(e[1])}`
             }
         }
@@ -118,7 +118,7 @@ function createTokenizer() {
 
 /** トークン列生成のためのマルコフモデル */
 function createMarkovModel() {
-    const model = { __num__: 0 }
+    const model: { [key: string]: any } = { __num__: 0 }
 
     const ingest = (tokens: number[]) => {
         let node = model
@@ -145,7 +145,11 @@ function createMarkovModel() {
         const list: [Token, number][] = []
         for (const [k, v] of Obj.kvs(node).filter(x => x[0] !== "__num__")) {
             const num = (v as any).__num__ === undefined ? 0 : (v as any).__num__
-            list.push([k.to_num(), num])
+            let n = k.to_num()
+            if (n === undefined) {
+                return undefined
+            }
+            list.push([n, num])
             totalWeight += num
         }
         if (totalWeight === 0) {
@@ -176,6 +180,8 @@ function createLetterSplitter() {
         c("]", ""),
         // URL
         seq([re.charsSeq("https://"), m(n(` \t${Str.lf}`, ""))]),
+        // タグ
+        seq([c("#", ""), m(n(` \t${Str.lf}`, ""))]),
         // *
         c("*", ""),
         // メンション
@@ -213,6 +219,67 @@ function createLetterSplitter() {
     }
 }
 
+type Note = {
+    id: string
+    text: string
+    user: {
+        id: string
+        isBot: boolean
+    }
+}
+
+const noteIterators = {
+    api: (url: string, params: any, modifier: (note: Note) => Note | undefined = x => x) => {
+        let untilId: string | undefined = undefined
+        return (batchCount: number): Note[] => {
+            if (untilId === undefined) {
+                params.limit = batchCount
+                const res = Mk.api(url, params) as Note[]
+                if (res.len === 0) {
+                    return res
+                }
+                untilId = res[res.len - 1].id
+                return res.map(note => modifier(note)).filter(x => x !== undefined) as Note[]
+            }
+            else {
+                params.untilId = untilId
+                params.limit = batchCount
+                const res = Mk.api(url, params) as Note[]
+                if (res.len === 0) {
+                    return res
+                }
+                untilId = res[res.len - 1].id
+                return res.map(note => modifier(note)).filter(x => x !== undefined) as Note[]
+            }
+        }
+    },
+    user: (userId: string) => {
+        return {
+            withMfm: `[${USER_NAME}](${SERVER_URL}/users/${USER_ID})`,
+            next: noteIterators.api("users/notes", { userId, includeReplies: false, includeMyRenotes: false })
+        }
+    },
+    ltl: () => {
+        return {
+            withMfm: `[LTL](${SERVER_URL})`,
+            next: noteIterators.api("notes/local-timeline", { withFiles: false, withRenotes: false, withReplies: false }, x => x.user.isBot ? undefined : x)
+        }
+    },
+    clip: (clipId: string) => {
+        const clipName = Mk.api("clips/show", { clipId }).name
+        return {
+            withMfm: `[${clipName}](${SERVER_URL}/clips/${clipId})`,
+            next: noteIterators.api("clips/notes", { clipId, limit: 50 })
+        }
+    },
+    tag: (tag: string) => {
+        return {
+            withMfm: `[${tag}](${SERVER_URL}/tags/${Uri.encode_full(tag)})`,
+            next: noteIterators.api("notes/search-by-tag", { tag, withFiles: false, withRenotes: false, withReplies: false })
+        }
+    }
+}
+
 const phase = kiwi.state("init")
 const progress = kiwi.state("")
 
@@ -224,38 +291,14 @@ const markovModel = createMarkovModel()
 const results = [""]
 const resultIndex = kiwi.state(0)
 
-let ingestedFromLtl = true
-
-function ingest(fromLtl: boolean) {
+function ingest(noteIter: { next: (batchCount: number) => Note[] }) {
     phase.set("learning")
-    ingestedFromLtl = fromLtl
-    const fetchBatchCount = 50
-    const fatchTimes = 6
 
     // 最新learnSteps*learnCount件のLTLを学習
     const letterSplitter = createLetterSplitter()
 
-    const getUserNotes = (untilId: string | undefined): { id: string, text: string, user: { isBot: boolean } }[] => {
-        if (untilId === undefined) {
-            return Mk.api("users/notes", { userId: USER_ID, includeReplies: false, limit: fetchBatchCount, includeMyRenotes: false })
-        }
-        else {
-            return Mk.api("users/notes", { userId: USER_ID, includeReplies: false, limit: fetchBatchCount, includeMyRenotes: false, untilId })
-        }
-    }
-
-    const getLtlNotes = (untilId: string | undefined): { id: string, text: string, user: { isBot: boolean } }[] => {
-        if (untilId === undefined) {
-            return Mk.api("notes/local-timeline", { withFiles: false, withRenotes: false, withReplies: false, limit: fetchBatchCount, allowPartial: false })
-        }
-        else {
-            return Mk.api("notes/local-timeline", { withFiles: false, withRenotes: false, withReplies: false, limit: fetchBatchCount, allowPartial: false, untilId });
-        }
-    }
-
-    const noteGetter = fromLtl ? getLtlNotes : getUserNotes
-
-    let untilId: string | undefined = undefined
+    const fetchBatchCount = 50
+    const fatchTimes = 6
 
     let totalLines: string[][] = []
 
@@ -266,25 +309,22 @@ function ingest(fromLtl: boolean) {
         }
     }
 
-    const getNextLines = (_untilId): [string, string[][]] => {
-        const res = noteGetter(_untilId)
-        const _nextUntilId = res[res.len - 1].id
+    const getNextLines = (): string[][] => {
+        const res = noteIter.next(fetchBatchCount)
         const lines = res
-            .filter(x => !x.user.isBot)
             .filter(x => x.text !== undefined)
             .flat_map(x => x.text.split(Str.lf).map(y => y.trim())).map(letterSplitter).filter(x => x.len > 0)
-        return [_nextUntilId, lines]
+        return lines
     }
 
     for (let i = 0; i < fatchTimes; i++) {
-        progress.set(`最新 ${(i + 1) * fetchBatchCount}/${fatchTimes * fetchBatchCount} 件のLTLノートを取得中 :nowloading_icon:`)
+        progress.set(`最新 ${(i + 1) * fetchBatchCount}/${fatchTimes * fetchBatchCount} 件のノートを取得中 :nowloading_icon:`)
 
         // 配列の初期化は多分並列で走るっぽいので、データ取得と加工を並列で走らせる
-        const [_, [_nextUntilId, lines]] = [
+        const [_, lines] = [
             learnLastLines(),
-            getNextLines(untilId)
+            getNextLines()
         ]
-        untilId = _nextUntilId
         last_lines = lines
         totalLines = totalLines.concat(lines)
     }
@@ -343,14 +383,100 @@ function generate() {
     resultIndex.set(results.len - 1)
 }
 
+function iteratorSelectUi(onIteratorSelected: (noteIter: { next: (batchCount: number) => Note[], withMfm: string }) => void) {
+    let mode = kiwi.state<string>("ltl")
+    let clipId = kiwi.state("")
+    let tag = kiwi.state("")
+
+    let error = kiwi.state<string>("")
+    kiwi.effect(() => {
+        let m = mode.get()
+        let i = clipId.get()
+        let t = tag.get()
+        if (m === "clip" && i === "") {
+            error.set("クリップIDを入力してください")
+        }
+        else if (m === "tag" && t === "") {
+            error.set("タグを入力してください")
+        }
+        else {
+            error.set("")
+        }
+        return true
+    })
+
+    return Ui.C.container({
+        children: [
+            Ui.C.select({
+                items: [
+                    {
+                        text: "LTLからｽﾞﾓる",
+                        value: "ltl"
+                    },
+                    {
+                        text: `${USER_NAME}からｽﾞﾓる`,
+                        value: "self"
+                    },
+                    {
+                        text: "クリップからｽﾞﾓる",
+                        value: "clip"
+                    },
+                    {
+                        text: "タグからｽﾞﾓる",
+                        value: "tag"
+                    }
+                ],
+                default: mode.get(),
+                onChange: mode.set
+            }),
+            kiwi.container({
+                hidden: () => mode.get() !== "clip",
+                children: [
+                    kiwi.textInput({
+                        label: "クリップID",
+                        caption: error.get,
+                        default: clipId.get(),
+                        onInput: clipId.set
+                    })
+                ]
+            }),
+            kiwi.container({
+                hidden: () => mode.get() !== "tag",
+                children: [
+                    kiwi.textInput({
+                        label: "タグ",
+                        caption: error.get,
+                        default: tag.get(),
+                        onInput: tag.set
+                    })
+                ]
+            }),
+            kiwi.button({
+                text: "ｽﾞﾓる",
+                disabled: () => error.get() !== "",
+                onClick() {
+                    if (mode.get() === "ltl") {
+                        onIteratorSelected(noteIterators.ltl())
+                    } else if (mode.get() === "self") {
+                        onIteratorSelected(noteIterators.user(USER_ID))
+                    } else if (mode.get() === "clip") {
+                        onIteratorSelected(noteIterators.clip(clipId.get()))
+                    } else if (mode.get() === "tag") {
+                        onIteratorSelected(noteIterators.tag(tag.get()))
+                    }
+                }
+            })
+        ]
+    })
+}
+
+let withMfm = ""
 Ui.render([
     kiwi.container({
         hidden: () => phase.get() !== "init",
-        children: [Ui.C.buttons({
-            buttons: [
-                { text: "LTLからｽﾞﾓる", onClick() { ingest(true) } },
-                { text: `${USER_NAME}からｽﾞﾓる`, onClick() { ingest(false) } },
-            ]
+        children: [iteratorSelectUi((x) => {
+            withMfm = x.withMfm
+            ingest(x)
         })]
     }),
     kiwi.container({
@@ -384,7 +510,7 @@ Ui.render([
                 primary: true,
                 rounded: true,
                 form: () => ({
-                    text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ <small>with ${ingestedFromLtl ? "LTL" : USER_NAME}</small>${Str.lf}${THIS_URL}`
+                    text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ <small>with ${withMfm}</small>${Str.lf}${THIS_URL}`
                 }),
             })
         ]

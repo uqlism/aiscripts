@@ -7,6 +7,7 @@
     "transpile": "bun --env-file .env aiscript-transpile",
     "deploy:itako": "bun --env-file .env aiscript-transpile deploy src/games/itako.ts voskey.icalo.net adeanga0y9",
     "deploy:zumo": "bun --env-file .env aiscript-transpile deploy src/games/zumo.ts voskey.icalo.net aeawu7h06j",
+    "deploy:kisyo": "bun --env-file .env aiscript-transpile deploy src/games/kisyo.ts voskey.icalo.net akata0thj3",
     "deploy:zumo:dev": "bun --env-file .env aiscript-transpile deploy src/games/zumo.ts voskey.icalo.net aeb82rsj4i",
     "deploy:vordle": "bun --env-file .env aiscript-transpile deploy src/games/vordle.ts voskey.icalo.net aej1suvo22",
     "deploy:zundatesla": "bun --env-file .env aiscript-transpile deploy src/games/zundatesla.ts voskey.icalo.net aetpx3hw9l",

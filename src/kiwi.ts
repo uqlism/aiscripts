@@ -1,5 +1,5 @@
 
-let global_subscribers: (() => boolean)[] = []
+let global_subscribers: ((() => boolean) | undefined)[] = []
 const _component = <C extends { [k: string]: any }>(__component: (prop: C) => Component<C>) => (props: { [K in keyof C]: K extends `on${string}` ? C[K] : C[K] | (() => C[K]) }) => {
     let init_props: { [key: string]: any } = {}
     let id = ''
@@ -46,7 +46,10 @@ const state = <T>(init: T) => {
     let subs: ((value: T) => boolean)[] = []
     return {
         get() {
-            if (global_subscribers.len > 0 && global_subscribers[global_subscribers.len - 1] !== undefined) subs.push(global_subscribers[global_subscribers.len - 1])
+            if (global_subscribers.len > 0) {
+                let top_sub = global_subscribers[global_subscribers.len - 1]
+                if (top_sub !== undefined) subs.push(top_sub)
+            }
             return v
         },
         set(value: T) {
