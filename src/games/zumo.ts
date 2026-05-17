@@ -280,19 +280,12 @@ const noteIterators = {
     }
 }
 
-const phase = kiwi.state("init")
-const progress = kiwi.state("")
-
 const tokenizer = createTokenizer()
 
 const markovModelDapth = 2
 const markovModel = createMarkovModel()
 
-const results = [""]
-const resultIndex = kiwi.state(0)
-
-function ingest(noteIter: { next: (batchCount: number) => Note[] }) {
-    phase.set("learning")
+function ingest(noteIter: { next: (batchCount: number) => Note[] }, progress: { set: (v: string) => void }) {
 
     // 最新learnSteps*learnCount件のLTLを学習
     const letterSplitter = createLetterSplitter()
@@ -351,36 +344,6 @@ function ingest(noteIter: { next: (batchCount: number) => Note[] }) {
             ingest(_tokens.slice(i, i + markovModelDapth))
         }
     })
-    phase.set("learned")
-}
-
-function generate() {
-    const icons = [
-        ":rei_skin:",
-        ":rei_byslime:",
-        ":rei_byyusei:",
-        ":rei_face_byszk01:",
-        ":rei_face_byamagiri:",
-        ":rei_sd_dot_bytanuzaka:",
-        ":peace_adachi:",
-        ":melting_rei:",
-    ]
-    const icon = icons[Math.rnd(0, icons.len - 1)]
-    const tokens = [tokenizer.startToken]
-    for (let i = 0; i < 25; i++) {
-        const next = markovModel.infer(tokens.slice(Math.max(tokens.len - markovModelDapth + 1, 0), tokens.len))
-        if (next === undefined) {
-            break
-        }
-        tokens.push(next)
-        if (next === tokenizer.endToken) {
-            break
-        }
-    }
-    const text = tokenizer.decodeToString(tokens)
-
-    results.push(`$[flip ${icon}]< ${text}`)
-    resultIndex.set(results.len - 1)
 }
 
 
@@ -508,46 +471,76 @@ function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig
     })
 }
 
-let withMfm = ""
 const savedData = saveDataManager.load()
 
-Ui.render([
-    kiwi.switch(phase.get, {
-        init: [
-            iteratorSelectUi(savedData.iterator, (newConfig, x) => {
-                saveDataManager.save({ ...savedData, iterator: newConfig })
-                withMfm = x.withMfm
-                ingest(x)
-            })
-        ],
-        learning: [
-            kiwi.mfm({ text: progress.get })
-        ],
-        learned: [
-            kiwi.mfm({ text: "$[flip.x :adachirei_yay:] 学習完了 !!" }),
-            Ui.C.button({ text: "ｽﾞﾓる", onClick: () => { generate(); phase.set("generated") } })
-        ],
-        generated: [
-            kiwi.mfm({ text: () => results[resultIndex.get()] }),
-            kiwi.buttons({
-                buttons: () => {
-                    const i = resultIndex.get()
-                    return [
-                        { text: "←", disabled: i === 1, onClick: () => resultIndex.set(i - 1) },
-                        { text: `${i}/${results.len - 1}`, disabled: true, onClick: () => { } },
-                        { text: "→", disabled: i === results.len - 1, onClick: () => resultIndex.set(i + 1) },
-                        { text: "もっかいｽﾞﾓる", onClick: generate }
-                    ]
-                }
-            }),
-            kiwi.postFormButton({
-                text: "LTLに放出ｱｱｱｱｧｧｧｧ----wwww",
-                primary: true,
-                rounded: true,
-                form: () => ({
-                    text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ <small>with ${withMfm}</small>${Str.lf}${THIS_URL}`
-                }),
-            })
+function showInit() {
+    Ui.render([
+        iteratorSelectUi(savedData.iterator, (newConfig, iter) => {
+            saveDataManager.save({ ...savedData, iterator: newConfig })
+            showLearning(iter)
+        })
+    ])
+}
+
+function showLearning(iter: { next: (batchCount: number) => Note[], withMfm: string }) {
+    const progress = kiwi.state("")
+    Ui.render([kiwi.mfm({ text: progress.get })])
+    ingest(iter, progress)
+    showLearned(iter.withMfm)
+}
+
+function showLearned(withMfm: string) {
+    Ui.render([
+        kiwi.mfm({ text: "$[flip.x :adachirei_yay:] 学習完了 !!" }),
+        Ui.C.button({ text: "ｽﾞﾓる", onClick: () => showGenerated(withMfm) })
+    ])
+}
+
+function showGenerated(withMfm: string) {
+    const results: string[] = [""]
+    const resultIndex = kiwi.state(0)
+
+    function generate() {
+        const icons = [
+            ":rei_skin:", ":rei_byslime:", ":rei_byyusei:", ":rei_face_byszk01:",
+            ":rei_face_byamagiri:", ":rei_sd_dot_bytanuzaka:", ":peace_adachi:", ":melting_rei:",
         ]
-    })
-])
+        const icon = icons[Math.rnd(0, icons.len - 1)]
+        const tokens = [tokenizer.startToken]
+        for (let i = 0; i < 25; i++) {
+            const next = markovModel.infer(tokens.slice(Math.max(tokens.len - markovModelDapth + 1, 0), tokens.len))
+            if (next === undefined) break
+            tokens.push(next)
+            if (next === tokenizer.endToken) break
+        }
+        results.push(`$[flip ${icon}]< ${tokenizer.decodeToString(tokens)}`)
+        resultIndex.set(results.len - 1)
+    }
+
+    generate()
+
+    Ui.render([
+        kiwi.mfm({ text: () => results[resultIndex.get()] }),
+        kiwi.buttons({
+            buttons: () => {
+                const i = resultIndex.get()
+                return [
+                    { text: "←", disabled: i === 1, onClick: () => resultIndex.set(i - 1) },
+                    { text: `${i}/${results.len - 1}`, disabled: true, onClick: () => { } },
+                    { text: "→", disabled: i === results.len - 1, onClick: () => resultIndex.set(i + 1) },
+                    { text: "もっかいｽﾞﾓる", onClick: generate }
+                ]
+            }
+        }),
+        kiwi.postFormButton({
+            text: "LTLに放出ｱｱｱｱｧｧｧｧ----wwww",
+            primary: true,
+            rounded: true,
+            form: () => ({
+                text: `${results[resultIndex.get()]}${Str.lf}#ｷﾞｼﾞｽﾞﾓ <small>with ${withMfm}</small>${Str.lf}${THIS_URL}`
+            }),
+        })
+    ])
+}
+
+showInit()
