@@ -69,12 +69,38 @@ export const kiwi = {
     mfm: _component(Ui.C.mfm),
     button: _component(Ui.C.button),
     buttons: _component(Ui.C.buttons),
-    switch: _component(Ui.C.switch),
+    toggle: _component(Ui.C.switch),
     textInput: _component(Ui.C.textInput),
     textarea: _component(Ui.C.textarea),
     select: _component(Ui.C.select),
     postForm: _component(Ui.C.postForm),
     postFormButton: _component(Ui.C.postFormButton),
+
+    show(condition: () => boolean, children: Component<any>[]): Component<any> {
+        return kiwi.container({ hidden: () => !condition(), children })
+    },
+
+    switch<T extends string>(accessor: () => T, cases: { [K in T]: Component<any>[] }): Component<any> {
+        // .map は並列実行されるため for ループで順次処理し global_subscribers の競合を防ぐ
+        const entries: Array<[string, Component<any>[]]> = Obj.kvs(cases) as any
+        const containers: Component<any>[] = []
+        const keys: string[] = []
+        for (let i = 0; i < entries.len; i++) {
+            const k = entries[i][0]
+            const v = entries[i][1]
+            containers.push(Ui.C.container({ hidden: accessor() !== k, children: v }))
+            keys.push(k)
+        }
+        effect(() => {
+            const current = accessor()
+            for (let i = 0; i < containers.len; i++) {
+                const ui = Ui.get(containers[i].id)
+                if (ui !== undefined) ui.update({ hidden: current !== keys[i] })
+            }
+            return true
+        })
+        return Ui.C.container({ children: containers })
+    },
 
     state: state,
     effect: effect,

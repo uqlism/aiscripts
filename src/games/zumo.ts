@@ -444,62 +444,41 @@ function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig
         return true
     })
 
-    return Ui.C.container({
+    return kiwi.container({
         children: [
             Ui.C.select({
                 items: [
-                    {
-                        text: "LTLからｽﾞﾓる",
-                        value: "ltl"
-                    },
-                    {
-                        text: `${USER_NAME}からｽﾞﾓる`,
-                        value: "self"
-                    },
-                    {
-                        text: "クリップからｽﾞﾓる",
-                        value: "clip"
-                    },
-                    {
-                        text: "タグからｽﾞﾓる",
-                        value: "tag"
-                    }
+                    { text: "LTLからｽﾞﾓる",           value: "ltl"  },
+                    { text: `${USER_NAME}からｽﾞﾓる`, value: "self" },
+                    { text: "クリップからｽﾞﾓる",       value: "clip" },
+                    { text: "タグからｽﾞﾓる",           value: "tag"  }
                 ],
                 default: mode.get(),
                 onChange: mode.set
             }),
-            kiwi.container({
-                hidden: () => mode.get() !== "clip",
-                children: [
-                    kiwi.container({
-                        hidden: () => config.clipIds.len === 0,
-                        children: [
-                            kiwi.select({
-                                items: config.clipIds.map(x => ({ text: x.name, value: x.id })),
-                                default: clipId.get(),
-                                onChange: clipId.set
-                            }),
-                        ]
-                    }),
-                    kiwi.textInput({
-                        label: "クリップID",
-                        caption: error.get,
+            kiwi.show(() => mode.get() === "clip", [
+                kiwi.show(() => config.clipIds.len > 0, [
+                    kiwi.select({
+                        items: config.clipIds.map(x => ({ text: x.name, value: x.id })),
                         default: clipId.get(),
-                        onInput: clipId.set
-                    })
-                ]
-            }),
-            kiwi.container({
-                hidden: () => mode.get() !== "tag",
-                children: [
-                    kiwi.textInput({
-                        label: "タグ",
-                        caption: error.get,
-                        default: tag.get(),
-                        onInput: tag.set
-                    })
-                ]
-            }),
+                        onChange: clipId.set
+                    }),
+                ]),
+                kiwi.textInput({
+                    label: "クリップID",
+                    caption: error.get,
+                    default: clipId.get(),
+                    onInput: clipId.set
+                })
+            ]),
+            kiwi.show(() => mode.get() === "tag", [
+                kiwi.textInput({
+                    label: "タグ",
+                    caption: error.get,
+                    default: tag.get(),
+                    onInput: tag.set
+                })
+            ]),
             kiwi.button({
                 text: "ｽﾞﾓる",
                 disabled: () => error.get() !== "",
@@ -533,28 +512,22 @@ let withMfm = ""
 const savedData = saveDataManager.load()
 
 Ui.render([
-    kiwi.container({
-        hidden: () => phase.get() !== "init",
-        children: [iteratorSelectUi(savedData.iterator, (newConfig, x) => {
-            saveDataManager.save({ ...savedData, iterator: newConfig })
-            withMfm = x.withMfm
-            ingest(x)
-        })]
-    }),
-    kiwi.container({
-        hidden: () => phase.get() !== "learning",
-        children: [kiwi.mfm({ text: progress.get })]
-    }),
-    kiwi.container({
-        hidden: () => phase.get() !== "learned",
-        children: [
+    kiwi.switch(phase.get, {
+        init: [
+            iteratorSelectUi(savedData.iterator, (newConfig, x) => {
+                saveDataManager.save({ ...savedData, iterator: newConfig })
+                withMfm = x.withMfm
+                ingest(x)
+            })
+        ],
+        learning: [
+            kiwi.mfm({ text: progress.get })
+        ],
+        learned: [
             kiwi.mfm({ text: "$[flip.x :adachirei_yay:] 学習完了 !!" }),
-            Ui.C.button({ text: "ｽﾞﾓる", onClick: () => { generate(); phase.set("generated") }, })
-        ]
-    }),
-    kiwi.container({
-        hidden: () => phase.get() !== "generated",
-        children: [
+            Ui.C.button({ text: "ｽﾞﾓる", onClick: () => { generate(); phase.set("generated") } })
+        ],
+        generated: [
             kiwi.mfm({ text: () => results[resultIndex.get()] }),
             kiwi.buttons({
                 buttons: () => {
