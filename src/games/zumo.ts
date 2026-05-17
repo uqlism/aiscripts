@@ -391,17 +391,17 @@ function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig
     let tag = kiwi.state(config.tags.len > 0 ? config.tags[0] : "")
 
     let error = kiwi.state<string>("")
+    let clipName = kiwi.state<string>("")
     kiwi.effect(() => {
-        let m = mode.get()
-        let i = clipId.get()
-        let t = tag.get()
+        const m = mode.get()
+        const i = clipId.get()
+        const t = tag.get()
         if (m === "clip" && i === "") {
             error.set("クリップIDを入力してください")
-        }
-        else if (m === "tag" && t === "") {
+            clipName.set("")
+        } else if (m === "tag" && t === "") {
             error.set("タグを入力してください")
-        }
-        else {
+        } else {
             error.set("")
         }
         return true
@@ -429,9 +429,13 @@ function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig
                 ]),
                 kiwi.textInput({
                     label: "クリップID",
-                    caption: error.get,
+                    caption: () => error.get() !== "" ? error.get() : clipName.get(),
                     default: clipId.get(),
-                    onInput: clipId.set
+                    onInput: (v: string) => {
+                        clipId.set(v)
+                        const clip = Mk.api("clips/show", { clipId: v }) as { name: string } | undefined
+                        clipName.set(clip !== undefined ? clip.name : "")
+                    }
                 })
             ]),
             kiwi.show(() => mode.get() === "tag", [
@@ -455,10 +459,10 @@ function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig
                         iter = noteIterators.user(USER_ID)
                     } else if (mode.get() === "clip") {
                         config.default = "clip"
-                        if (!config.clipIds.some((c: { id: string, name: string }) => c.id === clipId.get())) {
-                            config.clipIds.push({ id: clipId.get(), name: clipId.get() })
-                        }
                         iter = noteIterators.clip(clipId.get())
+                        if (!config.clipIds.some((c: { id: string, name: string }) => c.id === clipId.get())) {
+                            config.clipIds.push({ id: clipId.get(), name: clipName.get() })
+                        }
                     } else if (mode.get() === "tag") {
                         config.default = "tag"
                         if (config.tags.index_of(tag.get()) === -1) config.tags.push(tag.get())
