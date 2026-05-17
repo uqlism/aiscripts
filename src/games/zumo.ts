@@ -383,10 +383,49 @@ function generate() {
     resultIndex.set(results.len - 1)
 }
 
-function iteratorSelectUi(onIteratorSelected: (noteIter: { next: (batchCount: number) => Note[], withMfm: string }) => void) {
-    let mode = kiwi.state<string>("ltl")
-    let clipId = kiwi.state("")
-    let tag = kiwi.state("")
+
+type IteratorConfig = {
+    default: "ltl" | "user" | "clip" | "tag",
+    clipIds: {
+        id: string,
+        name: string
+    }[],
+    tags: string[]
+}
+type SaveDataV1 = {
+    iterator: IteratorConfig
+}
+type RawSaveData = {
+    version: 1,
+    data: SaveDataV1
+}
+const saveDataManager = {
+    load(): SaveDataV1 {
+        const data = Mk.load(THIS_ID) as RawSaveData | undefined
+        let v = data?.version
+        if (v === 1 && data !== undefined) {
+            return data.data
+        }
+        return {
+            iterator: {
+                default: "ltl",
+                clipIds: [],
+                tags: []
+            }
+        }
+    },
+    save(data: SaveDataV1) {
+        Mk.save(THIS_ID, {
+            version: 1,
+            data
+        } as RawSaveData)
+    }
+}
+
+function iteratorSelectUi(config: IteratorConfig, onIteratorSelected: (newConfig: IteratorConfig, noteIter: { next: (batchCount: number) => Note[], withMfm: string }) => void) {
+    let mode = kiwi.state<string>(config.default)
+    let clipId = kiwi.state(config.clipIds.len > 0 ? config.clipIds[0].id : "")
+    let tag = kiwi.state(config.tags.len > 0 ? config.tags[0] : "")
 
     let error = kiwi.state<string>("")
     kiwi.effect(() => {
@@ -432,6 +471,16 @@ function iteratorSelectUi(onIteratorSelected: (noteIter: { next: (batchCount: nu
             kiwi.container({
                 hidden: () => mode.get() !== "clip",
                 children: [
+                    kiwi.container({
+                        hidden: () => config.clipIds.len === 0,
+                        children: [
+                            kiwi.select({
+                                items: config.clipIds.map(x => ({ text: x.name, value: x.id })),
+                                default: clipId.get(),
+                                onChange: clipId.set
+                            }),
+                        ]
+                    }),
                     kiwi.textInput({
                         label: "クリップID",
                         caption: error.get,
@@ -455,15 +504,25 @@ function iteratorSelectUi(onIteratorSelected: (noteIter: { next: (batchCount: nu
                 text: "ｽﾞﾓる",
                 disabled: () => error.get() !== "",
                 onClick() {
+                    let iter = noteIterators.ltl()
                     if (mode.get() === "ltl") {
-                        onIteratorSelected(noteIterators.ltl())
+                        config.default = "ltl"
+                        iter = noteIterators.ltl()
                     } else if (mode.get() === "self") {
-                        onIteratorSelected(noteIterators.user(USER_ID))
+                        config.default = "user"
+                        iter = noteIterators.user(USER_ID)
                     } else if (mode.get() === "clip") {
-                        onIteratorSelected(noteIterators.clip(clipId.get()))
+                        config.default = "clip"
+                        if (!config.clipIds.some((c: { id: string, name: string }) => c.id === clipId.get())) {
+                            config.clipIds.push({ id: clipId.get(), name: clipId.get() })
+                        }
+                        iter = noteIterators.clip(clipId.get())
                     } else if (mode.get() === "tag") {
-                        onIteratorSelected(noteIterators.tag(tag.get()))
+                        config.default = "tag"
+                        if (config.tags.index_of(tag.get()) === -1) config.tags.push(tag.get())
+                        iter = noteIterators.tag(tag.get())
                     }
+                    onIteratorSelected(config, iter)
                 }
             })
         ]
@@ -471,10 +530,13 @@ function iteratorSelectUi(onIteratorSelected: (noteIter: { next: (batchCount: nu
 }
 
 let withMfm = ""
+const savedData = saveDataManager.load()
+
 Ui.render([
     kiwi.container({
         hidden: () => phase.get() !== "init",
-        children: [iteratorSelectUi((x) => {
+        children: [iteratorSelectUi(savedData.iterator, (newConfig, x) => {
+            saveDataManager.save({ ...savedData, iterator: newConfig })
             withMfm = x.withMfm
             ingest(x)
         })]
