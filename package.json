@@ -12,6 +12,7 @@
     "deploy:vordle": "bun --env-file .env aiscript-transpile deploy src/games/vordle.ts voskey.icalo.net aej1suvo22",
     "deploy:zundatesla": "bun --env-file .env aiscript-transpile deploy src/games/zundatesla.ts voskey.icalo.net aetpx3hw9l",
     "deploy:sent": "bun --env-file .env aiscript-transpile deploy src/games/sent_reactions.ts voskey.icalo.net ad9w1bqmg6",
+    "deploy:bingo": "bun --env-file .env aiscript-transpile deploy src/games/bingo.ts voskey.icalo.net adeanga0y9",
     "t": "bun --env-file .env aiscript-transpile transpile src/t.ts"
   },
   "dependencies": {
