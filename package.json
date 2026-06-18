@@ -16,7 +16,7 @@
     "t": "bun --env-file .env aiscript-transpile transpile src/t.ts"
   },
   "dependencies": {
-    "aiscript-transpiler": "file:../aiscript-transpiler/"
+    "aiscript-transpiler": "github:uqlism/aiscript-transpiler#v1.2.0"
   },
   "devDependencies": {
     "vitest": "^4.0.4"
