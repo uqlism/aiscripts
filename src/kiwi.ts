@@ -4,6 +4,7 @@ import { container, folder, text, mfm, button, buttons, toggle, textInput, texta
 export type { Mfm } from './kiwi/component'
 import { persist } from './kiwi/persist'
 import { createRouter } from './kiwi/router'
+export type { Router } from './kiwi/router'
 
 export const kiwi = {
     // Reactivity

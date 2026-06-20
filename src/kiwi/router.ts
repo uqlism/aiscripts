@@ -6,6 +6,14 @@ type Params = { [key: string]: string }
 type Handler = (pathParams: Params, queryParams: Params) => Component<any>[]
 type NotFoundHandler = (path: string, queryParams: Params) => Component<any>[]
 
+export type Router = {
+    on(pattern: string, handler: Handler): Router
+    notFound(handler: NotFoundHandler): Router
+    mount(): Component<any>
+    navigate(path: string, query?: Params): void
+    currentUrl(): string
+}
+
 const parseHash = (): { path: string, query: Params } => {
     const url = Mk.url()
     const hashIdx = url.index_of("#")
@@ -33,7 +41,7 @@ const parseHash = (): { path: string, query: Params } => {
     return { path, query }
 }
 
-const matchRoute = (pattern: string, path: string): Params | null => {
+const matchRoute = (pattern: string, path: string): Params | undefined => {
     const patternParts = pattern.split("/")
     const pathParts = path.split("/")
     if (patternParts.len !== pathParts.len) return undefined

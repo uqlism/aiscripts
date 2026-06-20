@@ -1,4 +1,4 @@
-import { kiwi, type Mfm } from "../kiwi"
+import { kiwi, type Mfm, type Router } from "../kiwi"
 
 // ===== カウンター =====
 function CounterView() {
@@ -93,7 +93,7 @@ function ParamsView(pathParams: { [k: string]: string }, queryParams: { [k: stri
 }
 
 // ===== ルーター =====
-const router = kiwi.app()
+const router: Router = kiwi.app()
   .on("", () => [
     kiwi.div([
       "$[x2 🥝 Kiwi フレームワーク デモ]",
