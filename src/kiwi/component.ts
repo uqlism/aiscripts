@@ -51,3 +51,23 @@ export const postFormButton = _component(Ui.C.postFormButton)
 
 export const show = (condition: () => boolean, children: Component<any>[]): Component<any> =>
     container({ hidden: () => !condition(), children })
+
+type ChildItem = string | Component<any>
+
+const normalizeChild = (item: ChildItem): Component<any> =>
+    Core.type(item) === "str" ? Ui.C.mfm({ text: item as string }) : item as Component<any>
+
+export const div = (
+    children: ChildItem[] | (() => ChildItem[]),
+    props?: { [key: string]: any }
+): Component<any> => {
+    const base: { [key: string]: any } = props ?? {}
+    if (Core.type(children) === "fn") {
+        const fn = children as () => ChildItem[]
+        return container({ ...base, children: () => fn().map(normalizeChild) })
+    }
+    const items = children as ChildItem[]
+    const normalized: Component<any>[] = []
+    for (let i = 0; i < items.len; i++) normalized.push(normalizeChild(items[i]))
+    return container({ ...base, children: normalized })
+}
