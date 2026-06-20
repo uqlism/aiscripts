@@ -3,7 +3,7 @@ import { effect, noReactive } from './core'
 
 export type Mfm = string | Mfm[] | { type: "click", label: Mfm, fn: () => void }
 
-export const click = (label: Mfm, fn: () => void): Mfm => ({ type: "click", label, fn })
+export const click = (label: Mfm, handler: () => void): Mfm => ({ type: "click", label, fn: handler })
 
 let _click_seq = 0
 

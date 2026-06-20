@@ -1,6 +1,6 @@
 
 type EffectNode = {
-    fn: () => boolean
+    cb: () => boolean
     cleanups: (() => void)[]
     active: boolean
 }
@@ -15,7 +15,7 @@ const runEffect = (node: EffectNode): void => {
     node.cleanups = []
     const prev = current_tracker
     current_tracker = node
-    const alive = node.fn()
+    const alive = node.cb()
     current_tracker = prev
     if (!alive) {
         node.active = false
@@ -56,13 +56,13 @@ export const state = <T>(init: T) => {
     }
 }
 
-export const computed = <T>(fn: () => T) => {
+export const computed = <T>(cb: () => T) => {
     let cached: T = undefined as any
     let dirty = true
     let dep_effects: EffectNode[] = []
 
     const inv_node: EffectNode = {
-        fn: () => {
+        cb: () => {
             dirty = true
             const snapshot = dep_effects.filter(e => e.active)
             for (let i = 0; i < snapshot.len; i++) scheduleEffect(snapshot[i])
@@ -77,7 +77,7 @@ export const computed = <T>(fn: () => T) => {
             if (dirty) {
                 const prev = current_tracker
                 current_tracker = inv_node
-                cached = fn()
+                cached = cb()
                 current_tracker = prev
                 dirty = false
             }
@@ -95,8 +95,8 @@ export const computed = <T>(fn: () => T) => {
     }
 }
 
-export const effect = (fn: () => boolean): (() => void) => {
-    const node: EffectNode = { fn, cleanups: [], active: true }
+export const effect = (cb: () => boolean): (() => void) => {
+    const node: EffectNode = { cb, cleanups: [], active: true }
     runEffect(node)
     return () => {
         node.active = false
@@ -105,9 +105,9 @@ export const effect = (fn: () => boolean): (() => void) => {
     }
 }
 
-export const batch = (fn: () => void): void => {
+export const batch = (cb: () => void): void => {
     batch_depth++
-    fn()
+    cb()
     batch_depth--
     if (batch_depth == 0) {
         const to_run = pending.filter(n => n.active)
@@ -116,10 +116,10 @@ export const batch = (fn: () => void): void => {
     }
 }
 
-export const noReactive = <T>(fn: () => T): T => {
+export const noReactive = <T>(cb: () => T): T => {
     const prev = current_tracker
     current_tracker = undefined
-    const result = fn()
+    const result = cb()
     current_tracker = prev
     return result
 }
