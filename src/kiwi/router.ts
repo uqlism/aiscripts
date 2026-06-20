@@ -50,15 +50,22 @@ const matchRoute = (pattern: string, path: string): Params | null => {
 
 export const createRouter = () => {
     const routes: [string, Handler][] = []
-    let notFoundHandler: NotFoundHandler = (path) => [Ui.C.text({ text: `Unknown page: ${path}` })]
-    let currentView: { get(): Component<any>[], set(value: Component<any>[]): void } | undefined = undefined
+    // let で関数を初期化すると transpiler が named function に変換して immutable になるため
+    // オブジェクトの property に格納して代入を property 更新に変換する
+    const router_state: {
+        notFoundHandler: NotFoundHandler,
+        currentView: { get(): Component<any>[], set(value: Component<any>[]): void } | undefined,
+    } = {
+        notFoundHandler: (path) => [Ui.C.text({ text: `Unknown page: ${path}` })],
+        currentView: undefined,
+    }
 
     const resolve = (path: string, query: Params): Component<any>[] => {
         for (let i = 0; i < routes.len; i++) {
             const pathParams = matchRoute(routes[i][0], path)
             if (pathParams !== undefined) return routes[i][1](pathParams, query)
         }
-        return notFoundHandler(path, query)
+        return router_state.notFoundHandler(path, query)
     }
 
     const router = {
@@ -67,18 +74,18 @@ export const createRouter = () => {
             return router
         },
         notFound(handler: NotFoundHandler) {
-            notFoundHandler = handler
+            router_state.notFoundHandler = handler
             return router
         },
         // ルート登録後に一度だけ呼ぶ。初期ページは URL ハッシュから解決される
         mount(): Component<any> {
             const { path, query } = parseHash()
-            currentView = state(resolve(path, query))
-            const view = currentView as { get(): Component<any>[], set(value: Component<any>[]): void }
+            router_state.currentView = state(resolve(path, query))
+            const view = router_state.currentView as { get(): Component<any>[], set(value: Component<any>[]): void }
             return container({ children: () => view.get() })
         },
         navigate(path: string, query?: Params) {
-            if (currentView !== undefined) currentView.set(resolve(path, query ?? {}))
+            if (router_state.currentView !== undefined) router_state.currentView.set(resolve(path, query ?? {}))
         },
     }
     return router

@@ -16,7 +16,7 @@ const renderMfm = (node: Mfm, handlers: { [id: string]: () => void }): string =>
         return parts.join("")
     }
     const n = node as { type: string, label: Mfm, fn: () => void }
-    const id = `_kc${_click_seq++}`
+    const id = `kc${_click_seq++}`
     handlers[id] = n.fn
     return `$[clickable.ev=${id} ${renderMfm(n.label, handlers)}]`
 }
