@@ -11,9 +11,9 @@ const renderMfm = (node: Mfm, handlers: { [id: string]: () => void }): string =>
     if (Core.type(node) === "str") return node as string
     if (Core.type(node) === "arr") {
         const arr = node as Mfm[]
-        let s = ""
-        for (let i = 0; i < arr.len; i++) s += renderMfm(arr[i], handlers)
-        return s
+        const parts: string[] = []
+        for (let i = 0; i < arr.len; i++) parts.push(renderMfm(arr[i], handlers))
+        return parts.join("")
     }
     const n = node as { type: string, label: Mfm, fn: () => void }
     const id = `_kc${_click_seq++}`
@@ -68,12 +68,12 @@ export const mfm = (first: Mfm | (() => Mfm) | { text: string | (() => string), 
     if (t === "obj" && (first as any).type !== "click") return _mfm_base(first as any)
 
     // 新形式: Mfm ツリー or () => Mfm
-    const ref: { map: { [id: string]: () => void } } = { map: {} }
+    const click_ref: { map: { [id: string]: () => void } } = { map: {} }
     if (t === "fn") {
-        const fn = first as () => Mfm
+        const mfm_fn = first as () => Mfm
         return _mfm_base({
-            text: () => { ref.map = {}; return renderMfm(fn(), ref.map) },
-            onClickEv: (evId: string) => { const h = ref.map[evId]; if (h !== undefined) h() },
+            text: () => { click_ref.map = {}; return renderMfm(mfm_fn(), click_ref.map) },
+            onClickEv: (evId: string) => { const h = click_ref.map[evId]; if (h !== undefined) h() },
         })
     }
     const handlers: { [id: string]: () => void } = {}
@@ -106,8 +106,8 @@ export const div = (
 ): Component<any> => {
     const base: { [key: string]: any } = props ?? {}
     if (Core.type(children) === "fn") {
-        const fn = children as () => ChildItem[]
-        return container({ ...base, children: () => fn().map(normalizeChild) })
+        const children_fn = children as () => ChildItem[]
+        return container({ ...base, children: () => children_fn().map(normalizeChild) })
     }
     const items = children as ChildItem[]
     const normalized: Component<any>[] = []

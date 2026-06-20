@@ -5,17 +5,17 @@ import { persist } from './kiwi/persist'
 import { createRouter } from './kiwi/router'
 
 export const kiwi = {
-    // ─── Reactivity ───────────────────────────────────────────────────────────
+    // Reactivity
     state,
     computed,
     effect,
     batch,
     noReactive,
 
-    // ─── Persistence ──────────────────────────────────────────────────────────
+    // Persistence
     persist,
 
-    // ─── UI Components ────────────────────────────────────────────────────────
+    // UI Components
     container,
     folder,
     text,
@@ -32,6 +32,6 @@ export const kiwi = {
     div,
     click,
 
-    // ─── App / Routing ────────────────────────────────────────────────────────
+    // App / Routing
     app: createRouter,
 }

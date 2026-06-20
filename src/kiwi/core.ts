@@ -5,7 +5,7 @@ type EffectNode = {
     active: boolean
 }
 
-let current_tracker: EffectNode | null = null
+let current_tracker: EffectNode | undefined = undefined
 let batch_depth = 0
 let pending: EffectNode[] = []
 
@@ -37,7 +37,7 @@ export const state = <T>(init: T) => {
     let effects: EffectNode[] = []
     return {
         get(): T {
-            if (current_tracker !== null) {
+            if (current_tracker !== undefined) {
                 const tracker = current_tracker
                 if (effects.filter(e => e == tracker).len == 0) {
                     effects.push(tracker)
@@ -57,7 +57,7 @@ export const state = <T>(init: T) => {
 }
 
 export const computed = <T>(fn: () => T) => {
-    let cached: T
+    let cached: T = undefined as any
     let dirty = true
     let dep_effects: EffectNode[] = []
 
@@ -81,7 +81,7 @@ export const computed = <T>(fn: () => T) => {
                 current_tracker = prev
                 dirty = false
             }
-            if (current_tracker !== null) {
+            if (current_tracker !== undefined) {
                 const tracker = current_tracker
                 if (dep_effects.filter(e => e == tracker).len == 0) {
                     dep_effects.push(tracker)
@@ -118,7 +118,7 @@ export const batch = (fn: () => void): void => {
 
 export const noReactive = <T>(fn: () => T): T => {
     const prev = current_tracker
-    current_tracker = null
+    current_tracker = undefined
     const result = fn()
     current_tracker = prev
     return result

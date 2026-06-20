@@ -10,10 +10,10 @@ const parseHash = (): { path: string, query: Params } => {
     const url = Mk.url()
     const hashIdx = url.index_of("#")
     if (hashIdx < 0) return { path: "", query: {} }
-    const hash = url.slice(hashIdx + 1, url.len)
-    const qIdx = hash.index_of("?")
-    const rawPath = qIdx < 0 ? hash : hash.slice(0, qIdx)
-    const queryStr = qIdx < 0 ? "" : hash.slice(qIdx + 1, hash.len)
+    const hashStr = url.slice(hashIdx + 1, url.len)
+    const qIdx = hashStr.index_of("?")
+    const rawPath = qIdx < 0 ? hashStr : hashStr.slice(0, qIdx)
+    const queryStr = qIdx < 0 ? "" : hashStr.slice(qIdx + 1, hashStr.len)
     // セグメント単位でデコードすることで %2F が / として解釈されてパスが壊れるのを防ぐ
     const rawParts = rawPath.split("/")
     let path = ""
@@ -36,13 +36,13 @@ const parseHash = (): { path: string, query: Params } => {
 const matchRoute = (pattern: string, path: string): Params | null => {
     const patternParts = pattern.split("/")
     const pathParts = path.split("/")
-    if (patternParts.len !== pathParts.len) return null
+    if (patternParts.len !== pathParts.len) return undefined
     const params: Params = {}
     for (let i = 0; i < patternParts.len; i++) {
         if (patternParts[i].starts_with(":")) {
             params[patternParts[i].slice(1, patternParts[i].len)] = pathParts[i]
         } else if (patternParts[i] !== pathParts[i]) {
-            return null
+            return undefined
         }
     }
     return params
@@ -51,12 +51,12 @@ const matchRoute = (pattern: string, path: string): Params | null => {
 export const createRouter = () => {
     const routes: [string, Handler][] = []
     let notFoundHandler: NotFoundHandler = (path) => [Ui.C.text({ text: `Unknown page: ${path}` })]
-    let currentView: { get(): Component<any>[], set(value: Component<any>[]): void } | null = null
+    let currentView: { get(): Component<any>[], set(value: Component<any>[]): void } | undefined = undefined
 
     const resolve = (path: string, query: Params): Component<any>[] => {
         for (let i = 0; i < routes.len; i++) {
             const pathParams = matchRoute(routes[i][0], path)
-            if (pathParams !== null) return routes[i][1](pathParams, query)
+            if (pathParams !== undefined) return routes[i][1](pathParams, query)
         }
         return notFoundHandler(path, query)
     }
@@ -74,10 +74,11 @@ export const createRouter = () => {
         mount(): Component<any> {
             const { path, query } = parseHash()
             currentView = state(resolve(path, query))
-            return container({ children: () => currentView!.get() })
+            const view = currentView as { get(): Component<any>[], set(value: Component<any>[]): void }
+            return container({ children: () => view.get() })
         },
         navigate(path: string, query?: Params) {
-            if (currentView !== null) currentView.set(resolve(path, query ?? {}))
+            if (currentView !== undefined) currentView.set(resolve(path, query ?? {}))
         },
     }
     return router
