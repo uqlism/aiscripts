@@ -1,0 +1,84 @@
+
+import { state } from './core'
+import { container } from './component'
+
+type Params = { [key: string]: string }
+type Handler = (pathParams: Params, queryParams: Params) => Component<any>[]
+type NotFoundHandler = (path: string, queryParams: Params) => Component<any>[]
+
+const parseHash = (): { path: string, query: Params } => {
+    const url = Mk.url()
+    const hashIdx = url.index_of("#")
+    if (hashIdx < 0) return { path: "", query: {} }
+    const hash = url.slice(hashIdx + 1, url.len)
+    const qIdx = hash.index_of("?")
+    const rawPath = qIdx < 0 ? hash : hash.slice(0, qIdx)
+    const queryStr = qIdx < 0 ? "" : hash.slice(qIdx + 1, hash.len)
+    // セグメント単位でデコードすることで %2F が / として解釈されてパスが壊れるのを防ぐ
+    const rawParts = rawPath.split("/")
+    let path = ""
+    for (let i = 0; i < rawParts.len; i++) {
+        if (i > 0) path = `${path}/`
+        path = `${path}${Uri.decode_component(rawParts[i])}`
+    }
+    const query: Params = {}
+    if (queryStr !== "") {
+        const pairs = queryStr.split("&")
+        for (let i = 0; i < pairs.len; i++) {
+            const eqIdx = pairs[i].index_of("=")
+            if (eqIdx < 0) continue
+            query[Uri.decode_component(pairs[i].slice(0, eqIdx))] = Uri.decode_component(pairs[i].slice(eqIdx + 1, pairs[i].len))
+        }
+    }
+    return { path, query }
+}
+
+const matchRoute = (pattern: string, path: string): Params | null => {
+    const patternParts = pattern.split("/")
+    const pathParts = path.split("/")
+    if (patternParts.len !== pathParts.len) return null
+    const params: Params = {}
+    for (let i = 0; i < patternParts.len; i++) {
+        if (patternParts[i].starts_with(":")) {
+            params[patternParts[i].slice(1, patternParts[i].len)] = pathParts[i]
+        } else if (patternParts[i] !== pathParts[i]) {
+            return null
+        }
+    }
+    return params
+}
+
+export const createRouter = () => {
+    const routes: [string, Handler][] = []
+    let notFoundHandler: NotFoundHandler = (path) => [Ui.C.text({ text: `Unknown page: ${path}` })]
+    let currentView: { get(): Component<any>[], set(value: Component<any>[]): void } | null = null
+
+    const resolve = (path: string, query: Params): Component<any>[] => {
+        for (let i = 0; i < routes.len; i++) {
+            const pathParams = matchRoute(routes[i][0], path)
+            if (pathParams !== null) return routes[i][1](pathParams, query)
+        }
+        return notFoundHandler(path, query)
+    }
+
+    const router = {
+        on(pattern: string, handler: Handler) {
+            routes.push([pattern, handler])
+            return router
+        },
+        notFound(handler: NotFoundHandler) {
+            notFoundHandler = handler
+            return router
+        },
+        // ルート登録後に一度だけ呼ぶ。初期ページは URL ハッシュから解決される
+        mount(): Component<any> {
+            const { path, query } = parseHash()
+            currentView = state(resolve(path, query))
+            return container({ children: () => currentView!.get() })
+        },
+        navigate(path: string, query?: Params) {
+            if (currentView !== null) currentView.set(resolve(path, query ?? {}))
+        },
+    }
+    return router
+}
