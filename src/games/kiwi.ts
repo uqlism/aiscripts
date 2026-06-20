@@ -9,9 +9,9 @@ function CounterView() {
     kiwi.mfm("$[x2 カウンター]"),
     kiwi.mfm(() => `現在: **${count.get()}** / 2倍: **${doubled.get()}**`),
     kiwi.buttons({ buttons: [
-      { text: "-1", onClick: () => count.set(count.get() - 1) },
+      { text: "-1", onClick: () => count.update(n => n - 1) },
       { text: "リセット", onClick: () => count.set(0) },
-      { text: "+1", primary: true, onClick: () => count.set(count.get() + 1) },
+      { text: "+1", primary: true, onClick: () => count.update(n => n + 1) },
     ]}),
   ]
 }
@@ -46,7 +46,7 @@ function TodoView() {
   const addTodo = () => {
     const text = input.get().trim()
     if (text === "") return
-    todos.set([...todos.get(), text])
+    todos.update(list => [...list, text])
     input.set("")
   }
 
@@ -61,7 +61,7 @@ function TodoView() {
       for (const todo of list) {
         const i = idx++
         nodes.push(kiwi.click(`✅ ${todo}`, () => {
-          todos.set(todos.get().filter((_, j) => j !== i))
+          todos.update(list => list.filter((_, j) => j !== i))
         }))
       }
       return nodes

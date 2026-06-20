@@ -52,6 +52,11 @@ export const state = <T>(init: T) => {
             v = value
             const snapshot = effects.filter(e => e.active)
             for (let i = 0; i < snapshot.len; i++) scheduleEffect(snapshot[i])
+        },
+        update(updater: (prev: T) => T): void {
+            v = updater(v)
+            const snapshot = effects.filter(e => e.active)
+            for (let i = 0; i < snapshot.len; i++) scheduleEffect(snapshot[i])
         }
     }
 }
