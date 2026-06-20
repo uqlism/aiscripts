@@ -1,9 +1,9 @@
 
 import { effect, noReactive } from './core'
 
-export type Mfm = string | Mfm[] | { type: "click", label: Mfm, fn: () => void }
+export type Mfm = string | Mfm[] | { type: "click", label: Mfm, on_click: () => void }
 
-export const click = (label: Mfm, handler: () => void): Mfm => ({ type: "click", label, fn: handler })
+export const click = (label: Mfm, handler: () => void): Mfm => ({ type: "click", label, on_click: handler })
 
 let _click_seq = 0
 
@@ -15,9 +15,9 @@ const renderMfm = (node: Mfm, handlers: { [id: string]: () => void }): string =>
         for (let i = 0; i < arr.len; i++) parts.push(renderMfm(arr[i], handlers))
         return parts.join("")
     }
-    const n = node as { type: string, label: Mfm, fn: () => void }
+    const n = node as { type: string, label: Mfm, on_click: () => void }
     const id = `kc${_click_seq++}`
-    handlers[id] = n.fn
+    handlers[id] = n.on_click
     return `$[clickable.ev=${id} ${renderMfm(n.label, handlers)}]`
 }
 
@@ -71,10 +71,21 @@ export const mfm = (first: Mfm | (() => Mfm) | { text: string | (() => string), 
     const click_ref: { map: { [id: string]: () => void } } = { map: {} }
     if (t === "fn") {
         const mfm_fn = first as () => Mfm
-        return _mfm_base({
-            text: () => { click_ref.map = {}; return renderMfm(mfm_fn(), click_ref.map) },
+        const comp = Ui.C.mfm({
+            text: "",
             onClickEv: (evId: string) => { const h = click_ref.map[evId]; if (h !== undefined) h() },
         })
+        const mfm_id = comp.id
+        effect(() => {
+            const ui = Ui.get(mfm_id)
+            if (ui === undefined) return false
+            const new_map: { [id: string]: () => void } = {}
+            const new_text = renderMfm(mfm_fn(), new_map)
+            click_ref.map = new_map
+            ui.update({ text: new_text })
+            return true
+        })
+        return comp
     }
     const handlers: { [id: string]: () => void } = {}
     const renderedText = renderMfm(first as Mfm, handlers)
