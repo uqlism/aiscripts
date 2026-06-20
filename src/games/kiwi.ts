@@ -26,8 +26,7 @@ function ClickMfmView() {
     kiwi.mfm(() => {
       const sel = selected.get()
       const nodes: ReturnType<typeof kiwi.click>[] = []
-      for (let i = 0; i < items.len; i++) {
-        const item = items[i]
+      for (const item of items) {
         nodes.push(kiwi.click(sel === item ? `$[bg.color=88ff88 ${item}]` : item, () => selected.set(item)))
       }
       return nodes
@@ -57,12 +56,15 @@ function TodoView() {
     kiwi.mfm(() => {
       const list = todos.get()
       if (list.len === 0) return "<small>タスクを追加してください</small>"
-      return list.map((todo, i) =>
-        kiwi.click(`$[clickable ✅ ${todo}]`, () => {
-          const next = todos.get().filter((_, j) => j !== i)
-          todos.set(next)
-        })
-      )
+      const nodes: ReturnType<typeof kiwi.click>[] = []
+      let idx = 0
+      for (const todo of list) {
+        const i = idx++
+        nodes.push(kiwi.click(`✅ ${todo}`, () => {
+          todos.set(todos.get().filter((_, j) => j !== i))
+        }))
+      }
+      return nodes
     }),
     kiwi.textInput({
       label: "新しいタスク",
