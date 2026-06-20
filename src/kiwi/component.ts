@@ -1,6 +1,26 @@
 
 import { effect, noReactive } from './core'
 
+export type Mfm = string | Mfm[] | { type: "click", label: Mfm, fn: () => void }
+
+export const click = (label: Mfm, fn: () => void): Mfm => ({ type: "click", label, fn })
+
+let _click_seq = 0
+
+const renderMfm = (node: Mfm, handlers: { [id: string]: () => void }): string => {
+    if (Core.type(node) === "str") return node as string
+    if (Core.type(node) === "arr") {
+        const arr = node as Mfm[]
+        let s = ""
+        for (let i = 0; i < arr.len; i++) s += renderMfm(arr[i], handlers)
+        return s
+    }
+    const n = node as { type: string, label: Mfm, fn: () => void }
+    const id = `_kc${_click_seq++}`
+    handlers[id] = n.fn
+    return `$[clickable.ev=${id} ${renderMfm(n.label, handlers)}]`
+}
+
 const _component = <C extends { [k: string]: any }>(__component: (prop: C) => Component<C>) => (props: { [K in keyof C]: K extends `on${string}` ? C[K] : C[K] | (() => C[K]) }) => {
     let init_props: { [key: string]: any } = {}
     const reactive_props: [string, () => any][] = []
@@ -39,7 +59,30 @@ const _component = <C extends { [k: string]: any }>(__component: (prop: C) => Co
 export const container     = _component(Ui.C.container)
 export const folder        = _component(Ui.C.folder)
 export const text          = _component(Ui.C.text)
-export const mfm           = _component(Ui.C.mfm)
+const _mfm_base = _component(Ui.C.mfm)
+
+export const mfm = (first: Mfm | (() => Mfm) | { text: string | (() => string), [k: string]: any }): Component<any> => {
+    const t = Core.type(first)
+
+    // 旧形式: { text: ..., onClickEv: ... } など — そのまま _mfm_base へ
+    if (t === "obj" && (first as any).type !== "click") return _mfm_base(first as any)
+
+    // 新形式: Mfm ツリー or () => Mfm
+    const ref: { map: { [id: string]: () => void } } = { map: {} }
+    if (t === "fn") {
+        const fn = first as () => Mfm
+        return _mfm_base({
+            text: () => { ref.map = {}; return renderMfm(fn(), ref.map) },
+            onClickEv: (evId: string) => { const h = ref.map[evId]; if (h !== undefined) h() },
+        })
+    }
+    const handlers: { [id: string]: () => void } = {}
+    const renderedText = renderMfm(first as Mfm, handlers)
+    return _mfm_base({
+        text: renderedText,
+        onClickEv: (evId: string) => { const h = handlers[evId]; if (h !== undefined) h() },
+    })
+}
 export const button        = _component(Ui.C.button)
 export const buttons       = _component(Ui.C.buttons)
 export const toggle        = _component(Ui.C.switch)
