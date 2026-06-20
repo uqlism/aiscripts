@@ -67,7 +67,7 @@ const buildUrl = (path: string, query: Params): string => {
     return `${base}#${path}?${pairs.join("&")}`
 }
 
-export const createRouter = () => {
+export const createRouter = (): Router => {
     const routes: [string, Handler][] = []
     const url_state = state("")
     // let で関数を初期化すると transpiler が named function に変換して immutable になるため
@@ -88,12 +88,12 @@ export const createRouter = () => {
         return router_state.notFoundHandler(path, query)
     }
 
-    const router = {
-        on(pattern: string, handler: Handler) {
+    const router: Router = {
+        on(pattern: string, handler: Handler): Router {
             routes.push([pattern, handler])
             return router
         },
-        notFound(handler: NotFoundHandler) {
+        notFound(handler: NotFoundHandler): Router {
             router_state.notFoundHandler = handler
             return router
         },
