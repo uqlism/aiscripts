@@ -75,6 +75,21 @@ function TodoView() {
   ]
 }
 
+// ===== パス/クエリパラメータ =====
+function ParamsView(pathParams: { [k: string]: string }, queryParams: { [k: string]: string }) {
+  return [
+    kiwi.mfm("$[x2 パラメータ確認]"),
+    kiwi.mfm(`パスパラメータ: **id** = \`${pathParams.id}\``),
+    kiwi.mfm(`クエリパラメータ: **tab** = \`${queryParams.tab ?? "(なし)"}\``),
+    kiwi.div([
+      kiwi.button({ text: "?tab=profile", onClick: () => router.navigate(`params/${pathParams.id}`, { tab: "profile" }) }),
+      kiwi.button({ text: "?tab=settings", onClick: () => router.navigate(`params/${pathParams.id}`, { tab: "settings" }) }),
+      kiwi.button({ text: "クエリなし", onClick: () => router.navigate(`params/${pathParams.id}`) }),
+    ]),
+    kiwi.mfm(() => `現在の URL: \`${router.currentUrl()}\``),
+  ]
+}
+
 // ===== ルーター =====
 const router = kiwi.app()
   .on("", () => [
@@ -86,6 +101,7 @@ const router = kiwi.app()
       kiwi.button({ text: "カウンター", primary: true, onClick: () => router.navigate("counter") }),
       kiwi.button({ text: "クリッカブル MFM", onClick: () => router.navigate("clickmfm") }),
       kiwi.button({ text: "Todo リスト", onClick: () => router.navigate("todo") }),
+      kiwi.button({ text: "パラメータ (id=42)", onClick: () => router.navigate("params/42", { tab: "profile" }) }),
     ]),
   ])
   .on("counter", () => [
@@ -98,6 +114,10 @@ const router = kiwi.app()
   ])
   .on("todo", () => [
     ...TodoView(),
+    kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
+  ])
+  .on("params/:id", (path, query) => [
+    ...ParamsView(path, query),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
   .notFound((path) => [

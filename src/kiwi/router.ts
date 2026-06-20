@@ -48,8 +48,20 @@ const matchRoute = (pattern: string, path: string): Params | null => {
     return params
 }
 
+const buildUrl = (path: string, query: Params): string => {
+    const url = Mk.url()
+    const hashIdx = url.index_of("#")
+    const base = hashIdx < 0 ? url : url.slice(0, hashIdx)
+    const keys = Obj.keys(query)
+    if (keys.len === 0) return `${base}#${path}`
+    const pairs: string[] = []
+    for (const k of keys) pairs.push(`${Uri.encode_component(k)}=${Uri.encode_component(query[k])}`)
+    return `${base}#${path}?${pairs.join("&")}`
+}
+
 export const createRouter = () => {
     const routes: [string, Handler][] = []
+    const url_state = state("")
     // let で関数を初期化すると transpiler が named function に変換して immutable になるため
     // オブジェクトの property に格納して代入を property 更新に変換する
     const router_state: {
@@ -80,13 +92,17 @@ export const createRouter = () => {
         // ルート登録後に一度だけ呼ぶ。初期ページは URL ハッシュから解決される
         mount(): Component<any> {
             const { path, query } = parseHash()
+            url_state.set(buildUrl(path, query))
             router_state.currentView = state(resolve(path, query))
             const view = router_state.currentView as { get(): Component<any>[], set(value: Component<any>[]): void }
             return container({ children: () => view.get() })
         },
         navigate(path: string, query?: Params) {
-            if (router_state.currentView !== undefined) router_state.currentView.set(resolve(path, query ?? {}))
+            const q = query ?? {}
+            url_state.set(buildUrl(path, q))
+            if (router_state.currentView !== undefined) router_state.currentView.set(resolve(path, q))
         },
+        currentUrl(): string { return url_state.get() },
     }
     return router
 }
