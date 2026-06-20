@@ -273,42 +273,42 @@ function editUI() {
       () => editItems.get().filter(v => v !== "").len < TOTAL,
       [kiwi.button({ text: "ノートに投稿する（全マス入力後に解放）", disabled: true, onClick: () => { } })]
     ),
-    kiwi.switch(() => editPhase.get(), {
-      edit: [
-        kiwi.buttons({ buttons: [
+    kiwi.container({ children: () => editPhase.get() === "edit"
+      ? [kiwi.buttons({ buttons: [
           { text: "リセット", onClick: () => editPhase.set("confirm") },
           { text: "メニューに戻る", onClick: () => phase.set("menu") },
-        ]}),
-      ],
-      confirm: [
-        kiwi.text({ text: "本当にリセットしますか？" }),
-        kiwi.buttons({ buttons: [
-          { text: "リセット", primary: true, onClick: () => { editItems.set(range(TOTAL).map(_ => "")); focus.set(0); editPhase.set("edit") } },
-          { text: "キャンセル", onClick: () => editPhase.set("edit") },
-        ]}),
-      ],
+        ]})]
+      : [
+          kiwi.text({ text: "本当にリセットしますか？" }),
+          kiwi.buttons({ buttons: [
+            { text: "リセット", primary: true, onClick: () => { editItems.set(range(TOTAL).map(_ => "")); focus.set(0); editPhase.set("edit") } },
+            { text: "キャンセル", onClick: () => editPhase.set("edit") },
+          ]}),
+        ]
     }),
   ]
 }
 
 // --- Render ---
 Ui.render([
-  kiwi.switch(() => phase.get(), {
-    menu: [
+  kiwi.container({ children: () => {
+    const p = phase.get()
+    if (p === "menu") return [
       kiwi.mfm({ text: `$[x2 性癖ビンゴ]` }),
       kiwi.text({ text: "自分の性癖25マスを埋めてノートに公開！他のユーザーとの相性もチェックしよう" }),
       kiwi.button({ text: "自分の性癖ビンゴを作る", onClick: () => phase.set("edit") }),
       kiwi.button({ text: "他の人との相性チェック", onClick: () => phase.set("match") }),
       kiwi.button({ text: "ランダムマッチ", onClick: doRandomMatch }),
-    ],
-    edit: editUI(),
-    match: [
+    ]
+    if (p === "edit") return editUI()
+    return [
       kiwi.mfm({ text: "$[x2 性癖相性チェック]" }),
-      kiwi.switch(() => matchPhase.get(), {
-        input: [
+      kiwi.container({ children: () => {
+        const mp = matchPhase.get()
+        if (mp === "input") return [
           kiwi.textInput({
             label: "ユーザー名 (@なし)",
-            default: "",
+            default: () => inputUser.get(),
             onInput: inputUser.set,
           }),
           kiwi.button({
@@ -316,12 +316,11 @@ Ui.render([
             disabled: () => inputUser.get() === "",
             onClick: doFetchBingo,
           }),
-        ],
-        play: [
+        ]
+        return [
           kiwi.container({
             align: "center",
             children: [
-
               matchGrid,
             ]
           }),
@@ -357,8 +356,8 @@ Ui.render([
             { text: "ランダムマッチ", onClick: doRandomMatch },
             { text: "メニューに戻る", onClick: () => phase.set("menu") },
           ]}),
-        ],
-      }),
-    ],
-  }),
+        ]
+      }}),
+    ]
+  }}),
 ])

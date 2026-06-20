@@ -51,29 +51,3 @@ export const postFormButton = _component(Ui.C.postFormButton)
 
 export const show = (condition: () => boolean, children: Component<any>[]): Component<any> =>
     container({ hidden: () => !condition(), children })
-
-// switch は予約語のため内部では switchView として定義し、kiwi.ts で switch として公開する
-export const switchView = <T extends string>(accessor: () => T, cases: { [K in T]: Component<any>[] }): Component<any> => {
-    const entries: Array<[string, Component<any>[]]> = Obj.kvs(cases) as any
-    const cs: Component<any>[] = []
-    const keys: string[] = []
-    for (let i = 0; i < entries.len; i++) {
-        const k = entries[i][0]
-        const v = entries[i][1]
-        cs.push(Ui.C.container({ hidden: noReactive(() => accessor() !== k), children: v }))
-        keys.push(k)
-    }
-    effect(() => {
-        const current = accessor()
-        let alive = false
-        for (let i = 0; i < cs.len; i++) {
-            const ui = Ui.get(cs[i].id)
-            if (ui !== undefined) {
-                ui.update({ hidden: current !== keys[i] })
-                alive = true
-            }
-        }
-        return alive
-    })
-    return Ui.C.container({ children: cs })
-}
