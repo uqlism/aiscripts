@@ -55,7 +55,7 @@ const buildUrl = (path: string, query: Params): string => {
     const keys = Obj.keys(query)
     if (keys.len === 0) return `${base}#${path}`
     const pairs: string[] = []
-    for (const k of keys) pairs.push(`${Uri.encode_component(k)}=${Uri.encode_component(query[k])}`)
+    for (const k of keys) pairs.push(`${Uri.encode_component(k as string)}=${Uri.encode_component(query[k as string])}`)
     return `${base}#${path}?${pairs.join("&")}`
 }
 

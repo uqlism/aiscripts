@@ -1,4 +1,4 @@
-import { kiwi } from "../kiwi"
+import { kiwi, type Mfm } from "../kiwi"
 
 // ===== カウンター =====
 function CounterView() {
@@ -8,11 +8,13 @@ function CounterView() {
   return [
     kiwi.mfm("$[x2 カウンター]"),
     kiwi.mfm(() => `現在: **${count.get()}** / 2倍: **${doubled.get()}**`),
-    kiwi.buttons({ buttons: [
-      { text: "-1", onClick: () => count.update(n => n - 1) },
-      { text: "リセット", onClick: () => count.set(0) },
-      { text: "+1", primary: true, onClick: () => count.update(n => n + 1) },
-    ]}),
+    kiwi.buttons({
+      buttons: [
+        { text: "-1", onClick: () => count.update(n => n - 1) },
+        { text: "リセット", onClick: () => count.set(0) },
+        { text: "+1", primary: true, onClick: () => count.update(n => n + 1) },
+      ]
+    }),
   ]
 }
 
@@ -25,7 +27,7 @@ function ClickMfmView() {
     kiwi.mfm("$[x2 好きなフルーツは？]"),
     kiwi.mfm(() => {
       const sel = selected.get()
-      const nodes: ReturnType<typeof kiwi.click>[] = []
+      const nodes: Mfm[] = []
       for (const item of items) {
         nodes.push(kiwi.click(sel === item ? `$[bg.color=88ff88 ${item}]` : item, () => selected.set(item)))
       }
@@ -56,7 +58,7 @@ function TodoView() {
     kiwi.mfm(() => {
       const list = todos.get()
       if (list.len === 0) return "<small>タスクを追加してください</small>"
-      const nodes: ReturnType<typeof kiwi.click>[] = []
+      const nodes: Mfm[] = []
       let idx = 0
       for (const todo of list) {
         const i = idx++
@@ -97,6 +99,7 @@ const router = kiwi.app()
       "$[x2 🥝 Kiwi フレームワーク デモ]",
       "AiScript 用リアクティブ UI フレームワーク",
     ], { align: "center" }),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.div([
       kiwi.button({ text: "カウンター", primary: true, onClick: () => router.navigate("counter") }),
       kiwi.button({ text: "クリッカブル MFM", onClick: () => router.navigate("clickmfm") }),
@@ -106,22 +109,27 @@ const router = kiwi.app()
   ])
   .on("counter", () => [
     ...CounterView(),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
   .on("clickmfm", () => [
     ...ClickMfmView(),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
   .on("todo", () => [
     ...TodoView(),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
   .on("params/:id", (path, query) => [
     ...ParamsView(path, query),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
   .notFound((path) => [
     kiwi.mfm(`ページが見つかりません: ${path}`),
+    kiwi.text({ text: () => router.currentUrl() }),
     kiwi.button({ text: "← メニューに戻る", onClick: () => router.navigate("") }),
   ])
 
