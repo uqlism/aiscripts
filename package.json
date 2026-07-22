@@ -14,7 +14,9 @@
     "deploy:sent": "bun --env-file .env aiscript-transpile deploy src/games/sent_reactions.ts voskey.icalo.net ad9w1bqmg6",
     "deploy:bingo": "bun --env-file .env aiscript-transpile deploy src/games/bingo.ts voskey.icalo.net adeanga0y9",
     "t": "bun --env-file .env aiscript-transpile transpile src/t.ts",
-    "deploy:kiwi": "bun --env-file .env aiscript-transpile deploy src/games/kiwi.ts voskey.icalo.net aefljganjk"
+    "deploy:kiwi": "bun --env-file .env aiscript-transpile deploy src/games/kiwi.ts voskey.icalo.net aefljganjk",
+    "deploy:gbingo": "bun --env-file .env aiscript-transpile deploy src/games/gbingo.ts voskey.icalo.net anq1omsf0r",
+    "deploy:today-song": "bun --env-file .env aiscript-transpile deploy src/games/today_song.ts voskey.icalo.net afon7b07m7"
   },
   "dependencies": {
     "aiscript-transpiler": "github:uqlism/aiscript-transpiler#v1.2.0"
