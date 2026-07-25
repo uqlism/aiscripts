@@ -1,107 +1,151 @@
 import { kiwi } from "../kiwi"
+import { range } from "../utils/range"
 
 const hashtag = "#おくったリアクション一覧"
+const WEEK_MS = 604800000  // 7 * 24 * 3600 * 1000
+const WORKER_COUNT = 24
+const TOP_COUNT = 20
 
-function main(limit: number | undefined = undefined) {
-    let i = 0
-    const n = kiwi.state(0)
-    renderProgress(n)
-    const res = Mk.api("users/reactions", { limit: 100, userId: USER_ID }) as { id: string, type: string }[]
+function aggregate(counts: { [k: string]: number }, types: string[]): [string, number][] {
+  return types.map(t => [t, counts[t]] as [string, number]).sort((a, b) => b[1] - a[1])
+}
 
-    const lastRes = res.at(-1)
-    let untilId = lastRes === undefined ? undefined : lastRes.id
+// ラウンドロビン分配 + ワーカーごと独立集計でレースコンディションを回避
+// - head の共有なし → 週の割り当て競合なし
+// - counts/types はワーカーローカル → 書き込み競合なし
+// - マージは map 完了後に逐次実行 → Obj.kvs 不要、競合なし
+// - workerId === 0 の表示ワーカーは done 配列で終了を検知
+function fetchAllReactions(sinceMs: number, setProgress: (n: number) => void): { merged: { [k: string]: number }, mergedTypes: string[], total: number } {
+  const totalWeeks = Math.ceil((Date.now() - sinceMs) / WEEK_MS)
+  let progressTotal = 0
+  const done = range(WORKER_COUNT).map(_ => false)
 
-    const reactions: { [k: string]: number } = {}
-
-    for (const r of res) {
-        i += 1
-        reactions[r.type] = (reactions[r.type] === undefined ? 0 : reactions[r.type]) + 1
-        if (i === limit) break
+  const workerResults = range(WORKER_COUNT + 1).map(workerId => {
+    if (workerId === 0) {
+      while (done.filter(d => !d).len > 0) {
+        Core.sleep(100)
+        setProgress(progressTotal)
+      }
+      return { counts: {} as { [k: string]: number }, types: [] as string[] }
     }
-    n.set(i)
 
-    while (untilId !== undefined && (limit === undefined || i < limit)) {
-        const res = Mk.api("users/reactions", { limit: 100, userId: USER_ID, untilId }) as { id: string, type: string }[]
-        const lastRes = res.at(-1)
-        untilId = lastRes === undefined ? undefined : lastRes.id
-        for (const r of res) {
-            i += 1
-            reactions[r.type] = (reactions[r.type] === undefined ? 0 : reactions[r.type]) + 1
-            if (i === limit) break
+    const counts: { [k: string]: number } = {}
+    const types: string[] = []
+    let weekIdx = workerId - 1  // ラウンドロビン: 1,25,49,… / 2,26,50,… / …
+
+    while (weekIdx < totalWeeks) {
+      const wSince = sinceMs + weekIdx * WEEK_MS
+      let untilId: string | undefined = undefined
+      for (let page = 0; page < 20; page++) {
+        const params: any = { limit: 100, userId: USER_ID, sinceDate: wSince, untilDate: wSince + WEEK_MS }
+        if (untilId !== undefined) params.untilId = untilId
+        let res: { id: string, type: string }[] | undefined = undefined
+        for (let retry = 0; retry < 5; retry++) {
+          res = Mk.api("users/reactions", params) as { id: string, type: string }[] | undefined
+          if (res !== undefined) break
+          Core.sleep(1000)
         }
-        n.set(i)
+        if (res === undefined || res.len === 0) break
+        for (const r of res) {
+          if (counts[r.type] === undefined) {
+            counts[r.type] = 1
+            types.push(r.type)
+          } else {
+            counts[r.type] = counts[r.type] + 1
+          }
+          progressTotal += 1
+        }
+        untilId = res[res.len - 1].id
+        if (res.len < 100) break
+      }
+      weekIdx += WORKER_COUNT
     }
+    done[workerId - 1] = true
+    return { counts, types }
+  })
 
-    const emojisList = Obj.kvs(reactions).sort((a, b) => b[1] - a[1])
-
-    renderResult(emojisList, 20)
-}
-
-function getReactions(untilMs: number, sinceMs: number) {
-    let reactions: string[] = []
-    const res = Mk.api("users/reactions", { limit: 100, userId: USER_ID, untilDate: untilMs, sinceDate: sinceMs }) as { id: string, type: string, createdAt: number }[]
-
-    reactions = reactions.concat(res.map(r => r.type))
-
-    let untilId = res.at(-1) === undefined ? undefined : res.at(-1).id
-    if (untilId !== undefined) {
-        const res = Mk.api("users/reactions", { limit: 100, userId: USER_ID, untilId, sinceDate: sinceMs }) as { id: string, type: string, createdAt: number }[]
-        untilId = res.at(-1) === undefined ? undefined : res.at(-1).id
-        reactions = reactions.concat(res.map(r => r.type))
+  // map 完了後に逐次マージ（競合なし、Obj.kvs 不要）
+  const merged: { [k: string]: number } = {}
+  const mergedTypes: string[] = []
+  for (let i = 1; i <= WORKER_COUNT; i++) {
+    const wr = workerResults[i]
+    for (const type of wr.types) {
+      if (merged[type] === undefined) {
+        merged[type] = wr.counts[type]
+        mergedTypes.push(type)
+      } else {
+        merged[type] = merged[type] + wr.counts[type]
+      }
     }
-    return reactions
+  }
+
+  return { merged, mergedTypes, total: progressTotal }
 }
 
-function renderProgress(count: { get: () => number }) {
-    Ui.render([
-        Ui.C.container({
-            align: 'center',
-            children: [
-                kiwi.mfm({ text: () => `リアクションを確認中……${Str.lf}${count.get()}リアクション見ました` })
-            ]
-        })
-    ])
+// --- State ---
+const phase = kiwi.state<"menu" | "running" | "done">("menu")
+const emojisList = kiwi.state<[string, number][]>([])
+const fetchedCount = kiwi.state(0)
+const totalCount = kiwi.state(0)
+
+const userInfo = Mk.api("users/show", { userId: USER_ID }) as { createdAt: string } | undefined
+const accountStartMs = userInfo !== undefined ? Date.parse(userInfo.createdAt) : Date.now() - 52 * WEEK_MS
+
+function startFetch(sinceMs: number) {
+  phase.set("running")
+  emojisList.set([])
+  fetchedCount.set(0)
+
+  const { merged, mergedTypes, total } = fetchAllReactions(sinceMs, fetchedCount.set)
+
+  emojisList.set(aggregate(merged, mergedTypes))
+  totalCount.set(total)
+  phase.set("done")
 }
 
-function renderResult(emojisList: [string, number][], topCount: number) {
-    const totalReaction = emojisList.reduce((sum, [_, count]) => sum + count, 0)
-
-    const resultText = emojisList.slice(0, topCount).map(([emoji, count]) => `${emoji.slice(0, emoji.len - 3)}: ${count}個`).join(Str.lf)
-    Ui.render([
-        Ui.C.container({
-            align: 'center',
-            children: [
-                Ui.C.mfm({ text: `${resultText}${Str.lf}<small>合計${emojisList.len}種類${totalReaction}個 / 上位${topCount}種類</small>` }),
-                Ui.C.postFormButton({
-                    text: `結果をノート`,
-                    rounded: true,
-                    primary: true,
-                    form: {
-                        text: `おくったリアクションは${Str.lf}${resultText}${Str.lf}<small>合計${emojisList.len}種類${totalReaction}個 / 上位${topCount}種類</small>${Str.lf}${hashtag}${Str.lf}${THIS_URL}`
-                    }
-                })
-            ]
-        })
-    ])
-}
+// --- UI ---
+const resultMfm = kiwi.mfm({
+  text: () => {
+    const list = emojisList.get()
+    const p = phase.get()
+    if (p === "running") return `集計中… ${fetchedCount.get()} 件取得済み`
+    if (list.len === 0) return ""
+    const t = totalCount.get()
+    const resultText = list.slice(0, TOP_COUNT)
+      .map(([emoji, count]) => `${emoji.slice(0, emoji.len - 3)}: ${count}個`)
+      .join(Str.lf)
+    const summary = `合計${list.len}種類${t}個 / 上位${TOP_COUNT}種類`
+    return `${resultText}${Str.lf}<small>${summary}</small>`
+  }
+})
 
 Ui.render([
-    Ui.C.container({
-        align: 'center',
-        children: [
-            Ui.C.mfm({ text: "対象とするノート数を選んでください。" }),
-            Ui.C.buttons({
-                buttons: [
-                    {
-                        text: `1000ノート`,
-                        onClick: () => main(1000)
-                    },
-                    {
-                        text: `全ノート`,
-                        onClick: () => main()
-                    }
-                ]
-            })
-        ]
+  kiwi.container({ align: "center", children: () => {
+    const p = phase.get()
+    if (p === "menu") return [
+      kiwi.mfm({ text: "対象とするリアクション期間を選んでください。" }),
+      kiwi.buttons({ buttons: [
+        { text: `直近3ヶ月`, onClick: () => startFetch(Date.now() - 12 * WEEK_MS) },
+        { text: `全期間`, onClick: () => startFetch(accountStartMs) },
+      ]}),
+    ]
+    const postButton = kiwi.postFormButton({
+      text: "結果をノート",
+      rounded: true,
+      primary: true,
+      form: () => {
+        const list = emojisList.get()
+        const t = totalCount.get()
+        const resultText = list.slice(0, TOP_COUNT)
+          .map(([emoji, count]) => `${emoji.slice(0, emoji.len - 3)}: ${count}個`)
+          .join(Str.lf)
+        const summary = `合計${list.len}種類${t}個 / 上位${TOP_COUNT}種類`
+        return { text: `おくったリアクションは${Str.lf}${resultText}${Str.lf}<small>${summary}</small>${Str.lf}${hashtag}${Str.lf}${THIS_URL}` }
+      },
     })
+    return [
+      resultMfm,
+      kiwi.show(() => phase.get() === "done", [postButton]),
+    ]
+  }}),
 ])
